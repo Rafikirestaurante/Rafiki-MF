@@ -1,7 +1,7 @@
 {
   "name": "rafiki-movimientos-facturas",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -24,5 +24,8 @@
     "globals": "^15.13.0",
     "vite-plugin-pwa": "^0.21.2",
     "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }
