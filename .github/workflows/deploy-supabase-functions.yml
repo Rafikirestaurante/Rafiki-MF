@@ -56,7 +56,7 @@ jobs:
       - name: Deploy gmail-connection-status
         run: supabase functions deploy gmail-connection-status --project-ref "$SUPABASE_PROJECT_REF"
 
-        Configurar despliegue automático de Supabase
+      
 
       - name: Deploy gmail-test-connection
         run: supabase functions deploy gmail-test-connection --project-ref "$SUPABASE_PROJECT_REF"
