@@ -1,0 +1,4 @@
+project_id = "rafiki-movimientos-facturas"
+
+[functions.gmail-oauth-callback]
+verify_jwt = false
