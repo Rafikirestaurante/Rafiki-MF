@@ -7,19 +7,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon.svg"],
-      manifest: {
-        name: "Rafiki Movimientos y Facturas",
-        short_name: "Rafiki Finanzas",
-        description: "Control documental de movimientos bancarios y facturas electrónicas.",
-        theme_color: "#102a43",
-        background_color: "#f4f7fa",
-        display: "standalone",
-        start_url: "/",
-        icons: [
-          { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" }
-        ]
-      },
+      includeAssets: ["icon.svg", "icon-192.png", "icon-512.png", "empleados-icon.svg", "empleados-icon-192.png", "empleados-icon-512.png", "manifest.webmanifest", "empleados.webmanifest"],
+      manifest: false,
       workbox: {
         navigateFallback: "/index.html",
         cleanupOutdatedCaches: true

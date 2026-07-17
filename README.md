@@ -94,3 +94,7 @@ La versión 1.2.4 diferencia “Sin conectar” de “Estado no disponible”, m
 ## Fase 2B.3.2 — Simplificación operativa
 
 La versión 1.2.5 reduce la navegación principal a Inicio, Movimientos, Facturas y Configuración. Se elimina el flujo de revisión de movimientos, sus columnas y estados derivados. Las confirmaciones realizadas desde el enlace de empleados se conservan en su tabla independiente sin modificar el movimiento. Requiere ejecutar `supabase/2026-07-17-fase2b32-simplificacion-operativa.sql` y redesplegar `gmail-sync-now` y `employee-public-access`.
+
+## Fase 2B.3.3 — PWA y sincronización rápida para empleados
+
+La versión 1.2.6 incorpora en `/empleados` el selector de sincronización rápida de 2, 6 y 12 horas, con 2 horas como opción predeterminada y límite de una ejecución por minuto. La ruta pública puede instalarse como una PWA independiente llamada **Rafiki Empleados**, con manifiesto, iconos e inicio directo propios. No requiere SQL nuevo; se deben redesplegar `gmail-sync-now` y `employee-public-access`.

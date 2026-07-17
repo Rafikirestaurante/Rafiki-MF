@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "Rafiki Movimientos y Facturas",
+  "short_name": "Rafiki MF",
+  "description": "Control documental de movimientos bancarios y facturas electrónicas.",
+  "lang": "es-CO",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#102a43",
+  "background_color": "#f4f7fa",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

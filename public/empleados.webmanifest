@@ -1,0 +1,18 @@
+{
+  "id": "/empleados",
+  "name": "Rafiki Empleados",
+  "short_name": "Rafiki Empleados",
+  "description": "Consulta, sincronización y confirmación de pagos recientes para empleados.",
+  "lang": "es-CO",
+  "start_url": "/empleados",
+  "scope": "/empleados",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0f5132",
+  "background_color": "#f4f7fa",
+  "icons": [
+    { "src": "/empleados-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/empleados-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/empleados-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

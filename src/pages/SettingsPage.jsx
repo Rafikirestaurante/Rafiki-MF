@@ -389,7 +389,7 @@ export default function SettingsPage({ profile }) {
 
       <section className="panel-card sync-card">
         <div className="panel-heading">
-          <div><span className="eyebrow">Fase 2B.3.2</span><h2>Sincronización y extractor Bancolombia</h2></div>
+          <div><span className="eyebrow">Fase 2B.3.3</span><h2>Sincronización y extractor Bancolombia</h2></div>
           <Badge tone={lastSync?.status === "success" ? "success" : lastSync?.status === "error" ? "danger" : lastSync ? "warning" : "neutral"}>
             {lastSync ? (lastSync.status === "success" ? "Completada" : lastSync.status === "partial" ? "Con novedades" : lastSync.status === "running" ? "En curso" : "Fallida") : "Sin ejecuciones"}
           </Badge>
@@ -429,7 +429,7 @@ export default function SettingsPage({ profile }) {
           <div><span className="eyebrow">Acceso restringido</span><h2>Enlace público para empleados</h2></div>
           <Badge tone={employeeEnabled ? "success" : "neutral"}>{employeeEnabled ? "Activo" : "Desactivado"}</Badge>
         </div>
-        <p className="panel-description">Permite consultar solamente los cinco movimientos más recientes, sincronizar alertas Bancolombia de los últimos tres días y confirmar la recepción de ingresos.</p>
+        <p className="panel-description">Permite consultar solamente los cinco movimientos más recientes, sincronizar alertas Bancolombia de las últimas 2, 6 o 12 horas, confirmar ingresos e instalar una PWA independiente para empleados.</p>
         {employeeMessage ? <Alert tone={employeeTone}>{employeeMessage}</Alert> : null}
         <div className="employee-access-form">
           <label><span>Nombre de acceso</span><input value={employeeUsername} maxLength={40} onChange={(event) => setEmployeeUsername(event.target.value.toLowerCase())} placeholder="empleados" disabled={!isAdmin || Boolean(employeeAction)} /></label>
@@ -446,7 +446,7 @@ export default function SettingsPage({ profile }) {
           <div><Icon name="check" size={16} /><span>Solo cinco movimientos</span></div>
           <div><Icon name="check" size={16} /><span>Sin acceso a Gmail ni facturas</span></div>
           <div><Icon name="check" size={16} /><span>Sesión temporal de 8 horas</span></div>
-          <div><Icon name="check" size={16} /><span>Sin selección libre de fechas</span></div>
+          <div><Icon name="check" size={16} /><span>PWA instalable e independiente</span></div>
         </div>
         <Alert tone="warning">El nombre y la contraseña son compartidos. Al cambiar cualquiera de los dos, todas las sesiones públicas abiertas se cierran automáticamente.</Alert>
       </section>
@@ -466,8 +466,8 @@ export default function SettingsPage({ profile }) {
       ) : null}
 
       <section className="panel-card phase-card">
-        <div><span className="eyebrow">Versión 1.2.5</span><h2>Fase 2B.3.2 — Simplificación operativa</h2><p>Navegación reducida a Inicio, Movimientos, Facturas y Configuración; eliminación del flujo de revisión en movimientos y conservación de confirmaciones de empleados como registro independiente.</p></div>
-        <Badge tone="blue">Fase 2B.3.2</Badge>
+        <div><span className="eyebrow">Versión 1.2.6</span><h2>Fase 2B.3.3 — PWA y sincronización rápida para empleados</h2><p>La vista pública incorpora búsqueda rápida de 2, 6 y 12 horas y puede instalarse como “Rafiki Empleados”, separada visualmente del panel administrativo.</p></div>
+        <Badge tone="blue">Fase 2B.3.3</Badge>
       </section>
     </>
   );

@@ -47,6 +47,9 @@ export default function EmployeePublicPage() {
   const [confirming, setConfirming] = useState(null);
   const [employeeName, setEmployeeName] = useState("");
   const [note, setNote] = useState("");
+  const [quickHours, setQuickHours] = useState(2);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [installed, setInstalled] = useState(() => window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
   const latest = useMemo(() => movements[0] || null, [movements]);
 
@@ -69,8 +72,30 @@ export default function EmployeePublicPage() {
   }
 
   useEffect(() => {
+    function captureInstall(event) {
+      event.preventDefault();
+      setInstallPrompt(event);
+    }
+    function markInstalled() {
+      setInstalled(true);
+      setInstallPrompt(null);
+    }
+    window.addEventListener("beforeinstallprompt", captureInstall);
+    window.addEventListener("appinstalled", markInstalled);
     if (session) load(session);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", captureInstall);
+      window.removeEventListener("appinstalled", markInstalled);
+    };
   }, []);
+
+  async function installEmployeeApp() {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    if (choice?.outcome === "accepted") setInstalled(true);
+    setInstallPrompt(null);
+  }
 
   async function login(event) {
     event.preventDefault();
@@ -95,9 +120,9 @@ export default function EmployeePublicPage() {
     setAction("sync");
     setMessage("");
     try {
-      const data = await syncEmployeePublicMovements(session.access_token);
+      const data = await syncEmployeePublicMovements(session.access_token, quickHours);
       setTone(data.errors_count ? "warning" : "success");
-      setMessage(`Sincronización terminada: ${data.bancolombia_emails || 0} alerta(s) de Bancolombia revisada(s) y ${data.movements_created || 0} movimiento(s) nuevo(s).`);
+      setMessage(`Búsqueda rápida de ${quickHours} horas: ${data.bancolombia_emails || data.messages_scanned || 0} alerta(s) revisada(s), ${data.movements_created || 0} movimiento(s) nuevo(s) y ${data.duplicates_ignored || data.movement_duplicates || 0} ya registrado(s).`);
       await load(session, true);
     } catch (error) {
       setTone("danger");
@@ -142,7 +167,7 @@ export default function EmployeePublicPage() {
     return (
       <main className="employee-public-login">
         <section className="employee-login-card">
-          <div className="employee-public-brand"><span>R</span><div><strong>Rafiki MF</strong><small>Consulta de pagos para empleados</small></div></div>
+          <div className="employee-public-brand"><span>R</span><div><strong>Rafiki Empleados</strong><small>Consulta y confirmación de pagos</small></div></div>
           <span className="eyebrow">Acceso restringido</span>
           <h1>Últimos movimientos</h1>
           <p>Ingresa con el nombre y la contraseña compartidos por la administración.</p>
@@ -153,6 +178,13 @@ export default function EmployeePublicPage() {
             <button className="primary-button full" disabled={action === "login"}>{action === "login" ? "Ingresando..." : "Ingresar"}</button>
           </form>
           <small className="employee-security-note">Este enlace no permite abrir el panel administrativo, Gmail, facturas ni movimientos anteriores.</small>
+          {!installed ? (
+            <div className="employee-install-box">
+              <Icon name="install" size={20} />
+              <div><strong>Instala Rafiki Empleados</strong><small>Ábrela como una aplicación independiente desde la pantalla de inicio.</small></div>
+              {installPrompt ? <button type="button" className="secondary-button" onClick={installEmployeeApp}>Instalar</button> : <small className="employee-install-help">Usa el menú del navegador y selecciona “Agregar a pantalla de inicio”.</small>}
+            </div>
+          ) : <div className="employee-installed-badge"><Icon name="check" size={16} /> Aplicación instalada</div>}
         </section>
       </main>
     );
@@ -161,15 +193,25 @@ export default function EmployeePublicPage() {
   return (
     <main className="employee-public-page">
       <header className="employee-public-header">
-        <div className="employee-public-brand"><span>R</span><div><strong>Rafiki MF</strong><small>Pagos recientes</small></div></div>
-        <button className="secondary-button" onClick={logout}><Icon name="logout" size={17} /> Salir</button>
+        <div className="employee-public-brand"><span>R</span><div><strong>Rafiki Empleados</strong><small>Pagos recientes</small></div></div>
+        <div className="employee-header-actions">
+          {!installed && installPrompt ? <button className="secondary-button" onClick={installEmployeeApp}><Icon name="install" size={17} /> Instalar</button> : null}
+          <button className="secondary-button" onClick={logout}><Icon name="logout" size={17} /> Salir</button>
+        </div>
       </header>
 
       <section className="employee-public-content">
         <div className="employee-public-title">
           <div><span className="eyebrow">Vista limitada</span><h1>Últimos 5 movimientos</h1><p>Solo se muestran los registros más recientes. Los pagos recibidos pueden confirmarse una sola vez.</p></div>
-          <button className="primary-button" onClick={synchronize} disabled={Boolean(action) || loading}><Icon name="refresh" size={18} /> {action === "sync" ? "Sincronizando..." : "Sincronizar"}</button>
         </div>
+
+        <section className="employee-quick-sync-card">
+          <div className="movement-sync-copy"><strong>Sincronización rápida</strong><small>Usa 2 horas normalmente, 6 horas como respaldo y 12 horas para una revisión más amplia.</small></div>
+          <div className="hour-selector" aria-label="Horas a consultar">
+            {[2, 6, 12].map((hours) => <button type="button" key={hours} className={quickHours === hours ? "active" : ""} onClick={() => setQuickHours(hours)} disabled={Boolean(action) || loading}>{hours} h</button>)}
+          </div>
+          <button className="primary-button" onClick={synchronize} disabled={Boolean(action) || loading}><Icon name="refresh" size={18} /> {action === "sync" ? "Buscando..." : "Sincronizar"}</button>
+        </section>
 
         {message ? <Alert tone={tone}>{message}</Alert> : null}
         {latest ? <div className="employee-latest-banner"><span>Último movimiento actualizado</span><strong>{formatMoment(latest.transaction_at)}</strong></div> : null}
@@ -198,7 +240,7 @@ export default function EmployeePublicPage() {
             ))}
           </section>
         )}
-        <p className="employee-public-footer-note">La sincronización pública revisa únicamente alertas Bancolombia de los últimos tres días y puede ejecutarse una vez por minuto.</p>
+        <p className="employee-public-footer-note">La sincronización pública revisa únicamente alertas Bancolombia de las últimas 2, 6 o 12 horas y puede ejecutarse una vez por minuto.</p>
       </section>
 
       {confirming ? (

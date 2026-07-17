@@ -102,6 +102,8 @@ Deno.serve(async (request: Request) => {
   let publicEmployeeAccess = false;
   let publicClientKey = "";
   try {
+    const body = await request.json().catch(() => ({}));
+    const requestedQuickHours = [2, 6, 12].includes(Number(body.hours)) ? Number(body.hours) : 2;
     const employeeToken = String(request.headers.get("x-employee-access-token") || "").trim();
     if (employeeToken) {
       operationClient = adminClient();
@@ -118,13 +120,13 @@ Deno.serve(async (request: Request) => {
       if ((recentPublicSyncs || 0) > 0) {
         await operationClient.from("employee_public_access_log").insert({
           action: "sync_rate_limited", success: false, client_key: publicClientKey,
-          access_username: session.username, detail: { phase: "2B.2", wait_seconds: 60 }
+          access_username: session.username, detail: { phase: "2B.3.3", wait_seconds: 60, quick_hours: requestedQuickHours }
         });
         return jsonResponse(request, { error: "La sincronización pública puede ejecutarse una vez por minuto." }, 429);
       }
       await operationClient.from("employee_public_access_log").insert({
         action: "sync_requested", success: true, client_key: publicClientKey,
-        access_username: session.username, detail: { phase: "2B.2", fixed_range_days: 3 }
+        access_username: session.username, detail: { phase: "2B.3.3", quick_hours: requestedQuickHours }
       });
     } else {
       const admin = await requireAppAdmin(request);
@@ -134,20 +136,16 @@ Deno.serve(async (request: Request) => {
     }
     if (!operationClient) throw new Error("No se pudo establecer el contexto de sincronización.");
     const client = operationClient;
-    const body = await request.json().catch(() => ({}));
     const now = new Date();
     const requestedMode = String(body.mode || "range").toLowerCase();
-    const quickHours = [2, 6, 12].includes(Number(body.hours)) ? Number(body.hours) : 2;
-    const syncMode = publicEmployeeAccess ? "public" : requestedMode === "quick" ? "quick" : "range";
+    const quickHours = requestedQuickHours;
+    const syncMode = publicEmployeeAccess || requestedMode === "quick" ? "quick" : "range";
     const quickStart = new Date(now.getTime() - quickHours * 60 * 60 * 1000);
-    const publicFrom = new Date(now.getTime() - 2 * 86400000);
     const defaultFrom = new Date(now.getTime() - 6 * 86400000);
-    const dateFrom = publicEmployeeAccess
-      ? isoDay(publicFrom.toISOString().slice(0, 10), publicFrom)
-      : syncMode === "quick"
-        ? isoDay(quickStart.toISOString().slice(0, 10), quickStart)
-        : isoDay(body.date_from, defaultFrom);
-    const dateTo = publicEmployeeAccess || syncMode === "quick" ? isoDay(now.toISOString().slice(0, 10), now) : isoDay(body.date_to, now);
+    const dateFrom = syncMode === "quick"
+      ? isoDay(quickStart.toISOString().slice(0, 10), quickStart)
+      : isoDay(body.date_from, defaultFrom);
+    const dateTo = syncMode === "quick" ? isoDay(now.toISOString().slice(0, 10), now) : isoDay(body.date_to, now);
     if (dateFrom > dateTo) throw new Error("La fecha inicial no puede ser posterior a la fecha final.");
 
     const staleLimit = new Date(Date.now() - 30 * 60 * 1000).toISOString();
@@ -158,7 +156,7 @@ Deno.serve(async (request: Request) => {
     const { data: run, error: runError } = await client.from("gmail_sync_runs").insert({
       trigger_type: "manual", status: "running", requested_by: actorUserId,
       detail: {
-        phase: publicEmployeeAccess ? "2B.2-public" : "2B.3",
+        phase: publicEmployeeAccess ? "2B.3.3-public" : "2B.3",
         mode: syncMode,
         quick_hours: syncMode === "quick" ? quickHours : null,
         start_at: syncMode === "quick" ? quickStart.toISOString() : null,
@@ -186,13 +184,11 @@ Deno.serve(async (request: Request) => {
     endExclusive.setDate(endExclusive.getDate() + 1);
     const before = endExclusive.toISOString().slice(0, 10).replaceAll("-", "/");
     const senderFilter = "from:alertasynotificaciones@an.notificacionesbancolombia.com";
-    const queryText = publicEmployeeAccess
-      ? `${senderFilter} after:${after} before:${before}`
-      : syncMode === "quick"
-        ? `${senderFilter} after:${Math.floor(quickStart.getTime() / 1000)}`
-        : `after:${after} before:${before}`;
+    const queryText = syncMode === "quick"
+      ? `${senderFilter} after:${Math.floor(quickStart.getTime() / 1000)}`
+      : `after:${after} before:${before}`;
     const query = encodeURIComponent(queryText);
-    const messageLimit = syncMode === "quick" ? 100 : publicEmployeeAccess ? 150 : 500;
+    const messageLimit = syncMode === "quick" ? 100 : 500;
 
     let pageToken = "";
     const refs: Array<{ id: string; threadId?: string }> = [];
@@ -397,7 +393,7 @@ Deno.serve(async (request: Request) => {
     const status = errors ? (candidatesCreated || candidateDuplicates ? "partial" : "error") : "success";
     const finishedAt = new Date().toISOString();
     const detail = {
-      phase: publicEmployeeAccess ? "2B.2-public" : "2B.3",
+      phase: publicEmployeeAccess ? "2B.3.3-public" : "2B.3",
       mode: syncMode,
       quick_hours: syncMode === "quick" ? quickHours : null,
       start_at: syncMode === "quick" ? quickStart.toISOString() : null,

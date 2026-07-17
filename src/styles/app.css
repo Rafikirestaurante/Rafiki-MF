@@ -508,3 +508,50 @@ code { font-size: .9em; background: rgba(16,42,67,.08); padding: 2px 5px; border
   display: block;
   overflow-wrap: anywhere;
 }
+
+/* Fase 2B.3.3 — sincronización rápida y PWA independiente de empleados */
+.employee-header-actions { display: flex; align-items: center; gap: 8px; }
+.employee-quick-sync-card {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 17px 19px;
+  border: 1px solid #bcd8ca;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #f7fcf9, #eaf5ef);
+}
+.employee-quick-sync-card .movement-sync-copy strong { color: #0f5132; }
+.employee-quick-sync-card .hour-selector button.active { background: #0f5132; box-shadow: 0 4px 10px rgba(15,81,50,.2); }
+.employee-install-box {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  margin-top: 18px;
+  padding: 13px 14px;
+  border: 1px solid #bcd8ca;
+  border-radius: 12px;
+  color: #0f5132;
+  background: #f3faf6;
+}
+.employee-install-box > div { display: grid; gap: 3px; }
+.employee-install-box strong { font-size: 12px; }
+.employee-install-box small { color: var(--muted); line-height: 1.35; }
+.employee-install-help { grid-column: 3; max-width: 170px; text-align: right; }
+.employee-installed-badge { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 18px; color: #0f5132; font-size: 11px; font-weight: 800; }
+html[data-surface="employees"] body { background: #f4f7fa; }
+@media (display-mode: standalone) {
+  html[data-surface="employees"] .employee-public-header { padding-top: max(11px, env(safe-area-inset-top)); }
+  html[data-surface="employees"] .employee-public-content { padding-bottom: max(45px, env(safe-area-inset-bottom)); }
+}
+@media (max-width: 720px) {
+  .employee-quick-sync-card { grid-template-columns: 1fr; align-items: stretch; padding: 15px; }
+  .employee-quick-sync-card .hour-selector { width: 100%; }
+  .employee-quick-sync-card .hour-selector button { flex: 1; }
+  .employee-quick-sync-card > button { width: 100%; }
+  .employee-install-box { grid-template-columns: auto minmax(0, 1fr); }
+  .employee-install-box > button, .employee-install-help { grid-column: 1 / -1; width: 100%; max-width: none; text-align: center; }
+  .employee-header-actions .secondary-button { padding-inline: 10px; }
+}

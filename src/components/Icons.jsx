@@ -16,7 +16,8 @@ const paths = {
   shield: <><path d="M12 3 4.5 6v5.5c0 4.8 3.2 7.8 7.5 9.5 4.3-1.7 7.5-4.7 7.5-9.5V6z"/><path d="m9 12 2 2 4-4"/></>,
   search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
   calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></>,
-  alert: <><path d="M12 3 2.5 20h19z"/><path d="M12 9v5M12 17h.01"/></>
+  alert: <><path d="M12 3 2.5 20h19z"/><path d="M12 9v5M12 17h.01"/></>,
+  install: <><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></>
 };
 
 export default function Icon({ name, size = 20, className = "" }) {
