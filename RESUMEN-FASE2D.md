@@ -1,0 +1,3 @@
+# Resumen — Fase 2D
+
+Versión 1.3.0. Se incorpora facturación electrónica mediante la nueva Edge Function `gmail-sync-invoices`. La aplicación busca correos con ZIP, XML o PDF, descomprime ZIP, interpreta XML UBL y registra proveedor, NIT, número, CUFE, fechas y valores. Los PDF sin XML quedan como documentos incompletos para no perder el correo. Se añade búsqueda reciente de siete días, búsqueda histórica, control de duplicados, tabla real de facturas, métricas y enlace al correo original. Requiere ejecutar `supabase/2026-07-17-fase2d-facturacion-electronica.sql` y desplegar la nueva Edge Function.

@@ -555,3 +555,29 @@ html[data-surface="employees"] body { background: #f4f7fa; }
   .employee-install-box > button, .employee-install-help { grid-column: 1 / -1; width: 100%; max-width: none; text-align: center; }
   .employee-header-actions .secondary-button { padding-inline: 10px; }
 }
+
+/* Fase 2D — facturación electrónica */
+.invoice-sync-card { display: grid; grid-template-columns: minmax(260px,1fr) auto; align-items: center; gap: 16px; margin: 18px 0 12px; padding: 18px 20px; border: 1px solid #d8cfad; border-radius: 15px; background: linear-gradient(135deg,#fffdf7,#f8f3e5); }
+.invoice-sync-card > div { display: grid; gap: 4px; }
+.invoice-sync-card strong { color: var(--navy); font-size: 16px; }
+.invoice-sync-card small { color: var(--muted); line-height: 1.45; }
+.invoice-range-sync { margin-bottom: 18px; }
+.invoice-metrics { margin-top: 18px; }
+.latest-invoice-card { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 24px; margin: 18px 0; padding: 18px 20px; border: 1px solid #dfe7ec; border-radius: 15px; background: white; box-shadow: 0 8px 24px rgba(16,42,67,.05); }
+.latest-invoice-card > div { display: grid; gap: 4px; }
+.latest-invoice-card > div:nth-child(2) span { color: var(--muted); font-size: 10px; font-weight: 760; }
+.latest-invoice-card > div:nth-child(2) strong { font-size: 12px; }
+.latest-invoice-card > b { color: var(--navy); font-size: 20px; white-space: nowrap; }
+.invoice-filters { grid-template-columns: minmax(260px,1fr) auto auto; }
+.invoice-table td { vertical-align: middle; }
+.invoice-table td > strong { display: block; }
+.cell-subtext { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; line-height: 1.35; max-width: 320px; overflow-wrap: anywhere; }
+.invoice-mail-link { display: inline-flex; align-items: center; gap: 6px; color: var(--blue); font-size: 10px; font-weight: 800; text-decoration: none; white-space: nowrap; }
+.invoice-mail-link:hover { text-decoration: underline; }
+@media (max-width: 780px) {
+  .invoice-sync-card { grid-template-columns: 1fr; }
+  .invoice-sync-card > button { width: 100%; }
+  .latest-invoice-card { grid-template-columns: 1fr; gap: 12px; }
+  .latest-invoice-card > b { justify-self: start; }
+  .invoice-filters { grid-template-columns: 1fr; }
+}

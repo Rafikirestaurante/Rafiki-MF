@@ -388,12 +388,12 @@ export default function SettingsPage({ profile }) {
 
       <section className="panel-card sync-card">
         <div className="panel-heading">
-          <div><span className="eyebrow">Fase 2B.3.4</span><h2>Búsqueda rápida y extractor Bancolombia</h2></div>
+          <div><span className="eyebrow">Sincronización Gmail</span><h2>Movimientos y facturas</h2></div>
           <Badge tone={lastSync?.status === "success" ? "success" : lastSync?.status === "error" ? "danger" : lastSync ? "warning" : "neutral"}>
             {lastSync ? (lastSync.status === "success" ? "Completada" : lastSync.status === "partial" ? "Con novedades" : lastSync.status === "running" ? "En curso" : "Fallida") : "Sin ejecuciones"}
           </Badge>
         </div>
-        <p className="panel-description">Usa la búsqueda rápida para revisar solo las alertas recientes de Bancolombia. La búsqueda por fechas queda disponible para recuperaciones o consultas históricas.</p>
+        <p className="panel-description">Desde aquí se sincronizan movimientos de Bancolombia. La búsqueda y extracción de facturas se realiza desde el módulo Facturas.</p>
         <div className="quick-sync-panel">
           <div><span className="eyebrow">Recomendado</span><strong>Búsqueda rápida</strong><small>Revisa como máximo las 20 alertas más recientes de Bancolombia recibidas durante la última hora.</small></div>
           <button className="primary-button" onClick={synchronizeQuick} disabled={!isAdmin || !canAttemptGmail || Boolean(action)}><Icon name="refresh" size={18} /> {action === "quick-sync" ? "Buscando..." : "Búsqueda rápida"}</button>
@@ -412,8 +412,8 @@ export default function SettingsPage({ profile }) {
         {lastSync ? <div className="sync-summary">
           <div><span>Última ejecución</span><strong>{formatDate(lastSync.started_at)}</strong></div>
           <div><span>Correos consultados</span><strong>{lastSync.messages_scanned || 0}</strong></div>
-          <div><span>Correos Bancolombia</span><strong>{lastSync.detail?.bancolombia_emails || 0}</strong></div>
-          <div><span>Movimientos creados</span><strong>{lastSync.movements_created || 0}</strong></div>
+          <div><span>{lastSync.detail?.phase === "2D" ? "Adjuntos revisados" : "Correos Bancolombia"}</span><strong>{lastSync.detail?.phase === "2D" ? (lastSync.detail?.attachments_scanned || 0) : (lastSync.detail?.bancolombia_emails || 0)}</strong></div>
+          <div><span>{lastSync.detail?.phase === "2D" ? "Facturas creadas" : "Movimientos creados"}</span><strong>{lastSync.detail?.phase === "2D" ? (lastSync.invoices_created || 0) : (lastSync.movements_created || 0)}</strong></div>
           <div><span>Ya registrados</span><strong>{lastSync.duplicates_ignored || 0}</strong></div>
           <div><span>Errores</span><strong>{lastSync.errors_count || 0}</strong></div>
         </div> : null}
@@ -462,8 +462,8 @@ export default function SettingsPage({ profile }) {
       ) : null}
 
       <section className="panel-card phase-card">
-        <div><span className="eyebrow">Versión 1.2.7</span><h2>Fase 2B.3.4 — Búsqueda rápida de 20 alertas</h2><p>Movimientos y Rafiki Empleados revisan como máximo las 20 alertas Bancolombia más recientes recibidas durante la última hora.</p></div>
-        <Badge tone="blue">Fase 2B.3.4</Badge>
+        <div><span className="eyebrow">Versión 1.3.0</span><h2>Fase 2D — Facturación electrónica</h2><p>Detección de correos con ZIP, XML y PDF, extracción UBL y registro controlado de facturas electrónicas.</p></div>
+        <Badge tone="blue">Fase 2D</Badge>
       </section>
     </>
   );

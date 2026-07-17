@@ -96,10 +96,12 @@ export const diagnoseGmailConnection = () => invoke("gmail-diagnostics");
 export const disconnectGmail = () => invoke("gmail-disconnect");
 export const syncGmailNow = (dateFrom, dateTo) => invoke("gmail-sync-now", { mode: "range", date_from: dateFrom, date_to: dateTo });
 export const syncGmailQuick = () => invoke("gmail-sync-now", { mode: "quick" });
+export const syncInvoicesRecent = () => invoke("gmail-sync-invoices", { mode: "recent" });
+export const syncInvoicesRange = (dateFrom, dateTo) => invoke("gmail-sync-invoices", { mode: "range", date_from: dateFrom, date_to: dateTo });
 
 export async function getRecentSyncRuns(limit = 10) {
   if (!supabaseConfigured || !supabase) throw new Error("Supabase todavía no está configurado.");
-  const { data, error } = await supabase.from("gmail_sync_runs").select("id,status,started_at,finished_at,messages_scanned,movements_created,duplicates_ignored,errors_count,detail").order("started_at", { ascending: false }).limit(limit);
+  const { data, error } = await supabase.from("gmail_sync_runs").select("id,status,started_at,finished_at,messages_scanned,movements_created,invoices_created,duplicates_ignored,errors_count,detail").order("started_at", { ascending: false }).limit(limit);
   if (error) throw new Error(error.message || "No se pudo consultar el historial de sincronizaciones.");
   return data || [];
 }

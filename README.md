@@ -103,3 +103,7 @@ La versión 1.2.6 incorpora en `/empleados` el selector de sincronización rápi
 ## Fase 2B.3.4 — Búsqueda rápida de 20 alertas
 
 La versión 1.2.7 reemplaza los selectores de horas por un botón único que consulta como máximo las 20 alertas Bancolombia más recientes recibidas durante la última hora. Se aplica en Movimientos, Configuración y Rafiki Empleados. No requiere SQL nuevo; se debe redesplegar `gmail-sync-now`.
+
+## Fase 2D — Facturación electrónica
+
+La versión 1.3.0 incorpora `gmail-sync-invoices`, búsqueda de correos con ZIP/XML/PDF, extracción UBL de proveedor, NIT, número, CUFE, fechas y valores, control de duplicados y un módulo Facturas operativo. Los PDF sin XML se registran como documentos incompletos. Ejecutar `supabase/2026-07-17-fase2d-facturacion-electronica.sql` antes de usar la nueva función.
