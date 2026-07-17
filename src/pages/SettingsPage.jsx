@@ -5,7 +5,9 @@ import {
   disconnectGmail,
   getGmailConnectionStatus,
   startGmailConnection,
-  testGmailConnection
+  testGmailConnection,
+  syncGmailNow,
+  getRecentSyncRuns
 } from "../services/gmailIntegrationService.js";
 
 function formatDate(value) {
@@ -28,6 +30,11 @@ export default function SettingsPage({ profile }) {
   const [message, setMessage] = useState("");
   const [tone, setTone] = useState("info");
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const sevenDaysAgo = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+  const [dateFrom, setDateFrom] = useState(sevenDaysAgo);
+  const [dateTo, setDateTo] = useState(today);
+  const [lastSync, setLastSync] = useState(null);
 
   const isAdmin = profile?.role === "admin";
   const connection = status.connection;
@@ -46,6 +53,8 @@ export default function SettingsPage({ profile }) {
     setLoading(true);
     try {
       setStatus(await getGmailConnectionStatus());
+      const runs = await getRecentSyncRuns(1);
+      setLastSync(runs[0] || null);
     } catch (error) {
       setTone("danger");
       setMessage(error.message || "No se pudo consultar la conexión con Gmail.");
@@ -98,6 +107,23 @@ export default function SettingsPage({ profile }) {
     } catch (error) {
       setTone("danger");
       setMessage(error.message || "No se pudo confirmar la conexión.");
+    } finally {
+      setAction("");
+    }
+  }
+
+
+  async function synchronize() {
+    setAction("sync");
+    setMessage("");
+    try {
+      const data = await syncGmailNow(dateFrom, dateTo);
+      setTone(data.errors_count ? "warning" : "success");
+      setMessage(`Sincronización terminada: ${data.messages_found || 0} correos encontrados, ${data.candidates_created || 0} candidatos nuevos y ${data.duplicates_ignored || 0} ya registrados.`);
+      await load();
+    } catch (error) {
+      setTone("danger");
+      setMessage(error.message || "No se pudo sincronizar Gmail.");
     } finally {
       setAction("");
     }
@@ -169,6 +195,30 @@ export default function SettingsPage({ profile }) {
         </article>
       </section>
 
+      <section className="panel-card sync-card">
+        <div className="panel-heading">
+          <div><span className="eyebrow">Fase 2A</span><h2>Sincronización manual de Gmail</h2></div>
+          <Badge tone={lastSync?.status === "success" ? "success" : lastSync?.status === "error" ? "danger" : lastSync ? "warning" : "neutral"}>
+            {lastSync ? (lastSync.status === "success" ? "Completada" : lastSync.status === "partial" ? "Con novedades" : lastSync.status === "running" ? "En curso" : "Fallida") : "Sin ejecuciones"}
+          </Badge>
+        </div>
+        <p className="panel-description">Consulta correos por rango de fechas y los registra como candidatos técnicos. Todavía no crea movimientos ni facturas.</p>
+        <div className="sync-controls">
+          <label><span>Desde</span><input type="date" value={dateFrom} max={dateTo} onChange={(event) => setDateFrom(event.target.value)} /></label>
+          <label><span>Hasta</span><input type="date" value={dateTo} min={dateFrom} max={today} onChange={(event) => setDateTo(event.target.value)} /></label>
+          <button className="primary-button" onClick={synchronize} disabled={!isAdmin || !connected || Boolean(action) || !dateFrom || !dateTo}>
+            <Icon name="refresh" size={18} /> {action === "sync" ? "Sincronizando..." : "Sincronizar ahora"}
+          </button>
+        </div>
+        {lastSync ? <div className="sync-summary">
+          <div><span>Última ejecución</span><strong>{formatDate(lastSync.started_at)}</strong></div>
+          <div><span>Correos revisados</span><strong>{lastSync.messages_scanned || 0}</strong></div>
+          <div><span>Ya registrados</span><strong>{lastSync.duplicates_ignored || 0}</strong></div>
+          <div><span>Errores</span><strong>{lastSync.errors_count || 0}</strong></div>
+        </div> : null}
+        {!connected ? <Alert tone="warning">Conecta y prueba Gmail antes de ejecutar una sincronización.</Alert> : null}
+      </section>
+
       {confirmDisconnect ? (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setConfirmDisconnect(false)}>
           <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="disconnect-title" onMouseDown={(event) => event.stopPropagation()}>
@@ -184,8 +234,8 @@ export default function SettingsPage({ profile }) {
       ) : null}
 
       <section className="panel-card phase-card">
-        <div><span className="eyebrow">Versión 1.0.0</span><h2>Fase 1A — Base independiente</h2><p>Esta entrega configura la aplicación, autenticación, roles, navegación, tablas documentales y la infraestructura OAuth. La sincronización real todavía permanece deshabilitada.</p></div>
-        <Badge tone="blue">Preparada para Fase 2</Badge>
+        <div><span className="eyebrow">Versión 1.1.0</span><h2>Fase 2A — Motor de sincronización manual</h2><p>Consulta Gmail por rango de fechas, registra candidatos técnicos y conserva trazabilidad de ejecuciones y errores sin crear todavía movimientos ni facturas.</p></div>
+        <Badge tone="blue">Fase 2A</Badge>
       </section>
     </>
   );

@@ -26,3 +26,12 @@ export const getGmailConnectionStatus = () => invoke("gmail-connection-status");
 export const startGmailConnection = () => invoke("gmail-oauth-start");
 export const testGmailConnection = () => invoke("gmail-test-connection");
 export const disconnectGmail = () => invoke("gmail-disconnect");
+export const syncGmailNow = (dateFrom, dateTo) => invoke("gmail-sync-now", { date_from: dateFrom, date_to: dateTo });
+
+export async function getRecentSyncRuns(limit = 10) {
+  if (!supabaseConfigured || !supabase) throw new Error("Supabase todavía no está configurado.");
+  const { data, error } = await supabase.from("gmail_sync_runs").select("id,status,started_at,finished_at,messages_scanned,duplicates_ignored,errors_count,detail").order("started_at", { ascending: false }).limit(limit);
+  if (error) throw new Error(error.message || "No se pudo consultar el historial de sincronizaciones.");
+  return data || [];
+}
+

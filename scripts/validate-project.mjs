@@ -12,6 +12,8 @@ const required = [
   "supabase/functions/gmail-connection-status/index.ts",
   "supabase/functions/gmail-test-connection/index.ts",
   "supabase/functions/gmail-disconnect/index.ts",
+  "supabase/functions/gmail-sync-now/index.ts",
+  "supabase/2026-07-16-fase2a-motor-sincronizacion.sql",
   "docs/INSTALACION-GMAIL-SUPABASE.md"
 ];
 
@@ -30,4 +32,4 @@ for (const token of expectations) {
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 if (packageJson.name !== "rafiki-movimientos-facturas") throw new Error("Nombre de proyecto inesperado.");
 
-console.log("Validación correcta: aplicación independiente, tablas documentales y 5 Edge Functions presentes.");
+console.log("Validación correcta: Rafiki MF Fase 2A, tablas documentales y 6 Edge Functions presentes.");
