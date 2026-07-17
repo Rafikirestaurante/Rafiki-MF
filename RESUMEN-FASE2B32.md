@@ -1,0 +1,3 @@
+# Resumen — Fase 2B.3.2
+
+Versión 1.2.5. Simplifica Rafiki MF para dejar únicamente Inicio, Movimientos, Facturas y Configuración en la navegación principal. Elimina las páginas Verificación e Historial, la columna Revisión, el filtro, las ayudas, los conteos pendientes y las columnas de revisión de `financial_movements`. La confirmación pública de empleados continúa en `employee_payment_confirmations` sin cambiar el movimiento. Los duplicados por huella secundaria ahora se omiten en lugar de registrarse con un estado especial. Requiere ejecutar el SQL de la fase y redesplegar las funciones modificadas.

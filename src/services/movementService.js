@@ -8,7 +8,7 @@ export async function getFinancialMovements(limit = 300) {
   ensureSupabase();
   const { data, error } = await supabase
     .from("financial_movements")
-    .select("id,gmail_message_id,source,movement_type,transaction_date,transaction_at,email_received_at,detail,amount_cop,sender_email,email_subject,extraction_status,extraction_confidence,reference_text,extractor_version,created_at")
+    .select("id,gmail_message_id,source,movement_type,transaction_date,transaction_at,email_received_at,detail,amount_cop,sender_email,email_subject,extraction_confidence,reference_text,extractor_version,created_at")
     .order("transaction_at", { ascending: false })
     .order("email_received_at", { ascending: false, nullsFirst: false })
     .limit(limit);
@@ -23,16 +23,15 @@ export async function getTodayMovementSummary() {
   }).format(new Date());
   const { data, error } = await supabase
     .from("financial_movements")
-    .select("movement_type,amount_cop,extraction_status")
-    .eq("transaction_date", today)
-    .neq("extraction_status", "discarded");
+    .select("movement_type,amount_cop")
+    .eq("transaction_date", today);
   if (error) throw new Error(error.message || "No se pudo consultar el resumen de movimientos.");
   const rows = data || [];
   return rows.reduce((summary, row) => {
     summary.count += 1;
     if (row.movement_type === "income") summary.income += Number(row.amount_cop || 0);
     else summary.expense += Number(row.amount_cop || 0);
-    if (["pending", "possible_duplicate", "unidentified", "error"].includes(row.extraction_status)) summary.pending += 1;
+    summary.balance = summary.income - summary.expense;
     return summary;
-  }, { count: 0, income: 0, expense: 0, pending: 0 });
+  }, { count: 0, income: 0, expense: 0, balance: 0 });
 }

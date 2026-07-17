@@ -4,8 +4,6 @@ import LoginPage from "./pages/LoginPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import MovementsPage from "./pages/MovementsPage.jsx";
 import InvoicesPage from "./pages/InvoicesPage.jsx";
-import VerificationPage from "./pages/VerificationPage.jsx";
-import HistoryPage from "./pages/HistoryPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 import { Alert } from "./components/Ui.jsx";
 import { getCurrentProfile, getSession, onAuthStateChange, signOut } from "./services/authService.js";
@@ -14,8 +12,6 @@ const pages = {
   inicio: DashboardPage,
   movimientos: MovementsPage,
   facturas: InvoicesPage,
-  verificacion: VerificationPage,
-  historial: HistoryPage,
   configuracion: SettingsPage
 };
 
@@ -27,7 +23,10 @@ export default function App() {
   const [session, setSession] = useState(undefined);
   const [profile, setProfile] = useState(null);
   const [profileError, setProfileError] = useState("");
-  const [activePage, setActivePage] = useState(() => window.location.hash.replace("#", "") || "inicio");
+  const [activePage, setActivePage] = useState(() => {
+    const requested = window.location.hash.replace("#", "") || "inicio";
+    return pages[requested] ? requested : "inicio";
+  });
 
   useEffect(() => {
     let active = true;

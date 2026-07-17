@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Icon from "../components/Icons.jsx";
-import { Alert, Badge, EmptyState, PageHeader } from "../components/Ui.jsx";
+import { Alert, EmptyState, PageHeader } from "../components/Ui.jsx";
 import { syncGmailNow, syncGmailQuick } from "../services/gmailIntegrationService.js";
 import { getFinancialMovements } from "../services/movementService.js";
 
@@ -10,33 +10,6 @@ const typeLabels = {
   card_purchase: "Compra con tarjeta",
   service_payment: "Pago de servicio",
   unknown: "Sin identificar"
-};
-
-const statusLabels = {
-  pending: "Por revisar",
-  verified: "Confirmado",
-  unidentified: "Información incompleta",
-  possible_duplicate: "Revisar duplicado",
-  discarded: "Descartado",
-  error: "Error de lectura"
-};
-
-const statusDescriptions = {
-  pending: "El movimiento fue detectado correctamente, pero todavía no ha sido revisado por una persona.",
-  verified: "El registro ya fue revisado y confirmado.",
-  unidentified: "El correo no contenía todos los datos necesarios para identificar el movimiento.",
-  possible_duplicate: "El movimiento se parece a otro registro existente y requiere revisión.",
-  discarded: "El registro fue revisado y se decidió no tenerlo en cuenta.",
-  error: "Ocurrió un problema al interpretar el correo."
-};
-
-const statusTones = {
-  pending: "warning",
-  verified: "success",
-  unidentified: "neutral",
-  possible_duplicate: "danger",
-  discarded: "neutral",
-  error: "danger"
 };
 
 function cop(value) {
@@ -97,7 +70,6 @@ export default function MovementsPage({ profile }) {
   const [search, setSearch] = useState("");
   const [date, setDate] = useState("");
   const [source, setSource] = useState("all");
-  const [status, setStatus] = useState("all");
   const [dateFrom, setDateFrom] = useState(bogotaDay(-6));
   const [dateTo, setDateTo] = useState(bogotaDay());
   const [syncing, setSyncing] = useState(false);
@@ -127,7 +99,7 @@ export default function MovementsPage({ profile }) {
     try {
       const data = await syncGmailQuick(quickHours);
       setSyncTone(data.errors_count || data.bancolombia_unidentified ? "warning" : "success");
-      setSyncMessage(`Búsqueda rápida de ${quickHours} horas: ${data.messages_scanned || data.messages_found || 0} alertas revisadas, ${data.movements_created || 0} movimientos nuevos, ${data.duplicates_ignored || 0} ya registrados y ${data.bancolombia_unidentified || 0} con formato no reconocido.`);
+      setSyncMessage(`Búsqueda rápida de ${quickHours} horas: ${data.messages_scanned || data.messages_found || 0} alertas consultadas, ${data.movements_created || 0} movimientos nuevos, ${data.duplicates_ignored || 0} ya registrados y ${data.bancolombia_unidentified || 0} con formato no reconocido.`);
       await load();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (syncError) {
@@ -144,7 +116,7 @@ export default function MovementsPage({ profile }) {
     try {
       const data = await syncGmailNow(dateFrom, dateTo);
       setSyncTone(data.errors_count || data.bancolombia_unidentified ? "warning" : "success");
-      setSyncMessage(`Sincronización terminada: ${data.messages_found || 0} correos revisados, ${data.bancolombia_emails || 0} de Bancolombia y ${data.movements_created || 0} movimientos nuevos.`);
+      setSyncMessage(`Sincronización terminada: ${data.messages_found || 0} correos consultados, ${data.bancolombia_emails || 0} de Bancolombia y ${data.movements_created || 0} movimientos nuevos.`);
       await load();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (syncError) {
@@ -160,13 +132,12 @@ export default function MovementsPage({ profile }) {
     return rows.filter((row) => {
       if (date && row.transaction_date !== date) return false;
       if (source !== "all" && row.source !== source) return false;
-      if (status !== "all" && row.extraction_status !== status) return false;
       if (!term) return true;
       const moment = formatMoment(row);
       return [row.detail, row.reference_text, row.email_subject, row.amount_cop, typeLabels[row.movement_type], row.source, moment.date, moment.time]
         .some((value) => String(value || "").toLowerCase().includes(term));
     });
-  }, [rows, search, date, source, status]);
+  }, [rows, search, date, source]);
 
   const latestMovement = rows[0] || null;
   const latestMoment = latestMovement ? formatMoment(latestMovement) : null;
@@ -187,9 +158,9 @@ export default function MovementsPage({ profile }) {
         <div className="movement-sync-copy">
           <span className="eyebrow">Recomendado</span>
           <strong>Sincronización rápida</strong>
-          <small>Busca únicamente alertas recientes de Bancolombia. Usa 2 horas normalmente, 6 horas como respaldo y 12 horas para una revisión más amplia.</small>
+          <small>Busca únicamente alertas recientes de Bancolombia. Usa 2 horas normalmente, 6 horas como respaldo y 12 horas para una búsqueda más amplia.</small>
         </div>
-        <div className="hour-selector" aria-label="Horas a revisar">
+        <div className="hour-selector" aria-label="Horas a consultar">
           {[2, 6, 12].map((hours) => <button type="button" key={hours} className={quickHours === hours ? "active" : ""} onClick={() => setQuickHours(hours)} disabled={syncing}>{hours} h</button>)}
         </div>
         <button className="primary-button" onClick={synchronizeQuick} disabled={!isAdmin || syncing || loading}>
@@ -201,7 +172,7 @@ export default function MovementsPage({ profile }) {
         <summary>Sincronización por rango de fechas</summary>
         <section className="movement-sync-card">
           <div className="movement-sync-copy">
-            <strong>Revisión histórica</strong>
+            <strong>Búsqueda histórica</strong>
             <small>Úsala para buscar movimientos de días anteriores.</small>
           </div>
           <label><span>Desde</span><input type="date" value={dateFrom} max={dateTo} onChange={(event) => setDateFrom(event.target.value)} /></label>
@@ -229,18 +200,8 @@ export default function MovementsPage({ profile }) {
           <div className="search-box"><Icon name="search" size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar detalle, referencia, fecha, hora o valor" /></div>
           <label className="compact-filter"><span>Fecha</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
           <label className="compact-filter"><span>Origen</span><select value={source} onChange={(event) => setSource(event.target.value)}><option value="all">Todos</option><option value="bancolombia">Bancolombia</option><option value="nequi">Nequi</option></select></label>
-          <label className="compact-filter"><span>Revisión</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="all">Todos</option><option value="pending">Por revisar</option><option value="verified">Confirmado</option><option value="possible_duplicate">Revisar duplicado</option><option value="unidentified">Información incompleta</option><option value="discarded">Descartado</option><option value="error">Error de lectura</option></select></label>
-          {(search || date || source !== "all" || status !== "all") ? <button className="filter-button" onClick={() => { setSearch(""); setDate(""); setSource("all"); setStatus("all"); }}>Limpiar</button> : null}
+          {(search || date || source !== "all") ? <button className="filter-button" onClick={() => { setSearch(""); setDate(""); setSource("all"); }}>Limpiar</button> : null}
         </div>
-
-        <details className="status-help">
-          <summary>¿Qué significa la columna “Revisión”?</summary>
-          <p><strong>No indica si el pago está pendiente.</strong> Informa si el registro extraído del correo ya fue revisado dentro de Rafiki MF.</p>
-          <div className="status-help-grid">
-            {Object.entries(statusLabels).map(([key, label]) => <div key={key}><Badge tone={statusTones[key] || "neutral"}>{label}</Badge><span>{statusDescriptions[key]}</span></div>)}
-          </div>
-          <small>La modificación manual de estos estados se habilitará en la etapa 2F — Verificación diaria.</small>
-        </details>
 
         {loading ? <div className="table-loading">Consultando movimientos...</div> : filtered.length === 0 ? (
           <EmptyState icon="movements" title={rows.length ? "No hay coincidencias" : "No hay movimientos documentados"} description={rows.length ? "Cambia o limpia los filtros para volver a ver los registros." : "Usa el botón Sincronizar ahora para consultar las alertas de Bancolombia."} />
@@ -249,7 +210,7 @@ export default function MovementsPage({ profile }) {
             <div className="results-caption">{filtered.length} movimiento{filtered.length === 1 ? "" : "s"} · ordenados del más reciente al más antiguo</div>
             <div className="data-table-wrap">
               <table className="data-table movement-table">
-                <thead><tr><th>Fecha y hora</th><th>Tipo y origen</th><th>Detalle</th><th>Referencia</th><th className="amount-column">Valor</th><th>Revisión</th></tr></thead>
+                <thead><tr><th>Fecha y hora</th><th>Tipo y origen</th><th>Detalle</th><th>Referencia</th><th className="amount-column">Valor</th></tr></thead>
                 <tbody>{filtered.map((row) => {
                   const moment = formatMoment(row);
                   return <tr key={row.id} className={row.id === latestMovement?.id ? "latest-row" : ""}>
@@ -258,7 +219,6 @@ export default function MovementsPage({ profile }) {
                     <td data-label="Detalle"><div className="movement-detail"><strong>{row.detail || "Sin detalle"}</strong><small>{row.email_subject || "Sin asunto"}</small></div></td>
                     <td data-label="Referencia">{row.reference_text || "—"}</td>
                     <td data-label="Valor"><MovementAmount row={row} /></td>
-                    <td data-label="Revisión"><Badge tone={statusTones[row.extraction_status] || "neutral"}>{statusLabels[row.extraction_status] || row.extraction_status}</Badge></td>
                   </tr>;
                 })}</tbody>
               </table>

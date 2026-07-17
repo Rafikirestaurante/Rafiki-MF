@@ -136,11 +136,7 @@ create table if not exists public.financial_movements (
   amount_cop bigint not null check (amount_cop >= 0),
   sender_email text,
   email_subject text,
-  extraction_status text not null default 'pending' check (extraction_status in ('pending', 'verified', 'unidentified', 'possible_duplicate', 'discarded', 'error')),
   extraction_confidence text not null default 'high' check (extraction_confidence in ('high', 'medium', 'low')),
-  reviewer_notes text not null default '',
-  reviewed_by uuid references public.app_users(id) on delete set null,
-  reviewed_at timestamptz,
   extractor_version text not null default 'pending',
   raw_fingerprint text,
   created_at timestamptz not null default now(),
@@ -149,7 +145,6 @@ create table if not exists public.financial_movements (
 );
 
 create index if not exists financial_movements_date_idx on public.financial_movements (transaction_date desc);
-create index if not exists financial_movements_status_idx on public.financial_movements (extraction_status);
 create index if not exists financial_movements_source_idx on public.financial_movements (source);
 
 drop trigger if exists trg_financial_movements_updated_at on public.financial_movements;

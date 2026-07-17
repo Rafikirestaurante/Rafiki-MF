@@ -13,7 +13,7 @@ Aplicación independiente para documentar movimientos bancarios detectados en Gm
 - Autenticación Supabase por correo y contraseña.
 - Roles `admin` y `reviewer`.
 - La primera cuenta registrada queda como Administrador.
-- Módulos: Inicio, Movimientos, Facturas, Verificación, Historial y Configuración.
+- Módulos: Inicio, Movimientos, Facturas y Configuración.
 - Supabase independiente y separado de Rafiki Pedidos.
 - OAuth 2.0 de Gmail con permiso de solo lectura.
 - Refresh token cifrado con AES-256-GCM.
@@ -23,7 +23,6 @@ Aplicación independiente para documentar movimientos bancarios detectados en Gm
 - Normalización de fecha, hora, valores COP, detalle y referencia.
 - Último movimiento siempre visible y listado ordenado del más reciente al más antiguo.
 - Botón de sincronización disponible dentro del módulo Movimientos.
-- Explicación clara de los estados de revisión.
 - Control primario de duplicados por `gmail_message_id + movement_type`.
 - Visualización de movimientos y resumen informativo del día.
 
@@ -33,7 +32,6 @@ Aplicación independiente para documentar movimientos bancarios detectados en Gm
 - Lectura de ZIP, XML y PDF de facturación electrónica.
 - Control definitivo de duplicados.
 - Edición de estados, observaciones y verificación diaria.
-- Historial operativo completo.
 
 La aplicación no afecta Caja, Cartera, Gastos ni Pedidos y no utiliza el proyecto Supabase de Rafiki Pedidos.
 
@@ -92,3 +90,7 @@ La ruta `/empleados` permite consultar solamente los cinco movimientos más reci
 ## Fase 2B.3.1 — Corrección del diagnóstico de Edge Functions
 
 La versión 1.2.4 diferencia “Sin conectar” de “Estado no disponible”, mantiene el diagnóstico visible aunque Supabase no responda y corrige bloqueos CORS entre URLs de Vercel y las Edge Functions. No requiere SQL nuevo. Es obligatorio redesplegar todas las funciones para incorporar el archivo compartido `_shared/cors.ts`.
+
+## Fase 2B.3.2 — Simplificación operativa
+
+La versión 1.2.5 reduce la navegación principal a Inicio, Movimientos, Facturas y Configuración. Se elimina el flujo de revisión de movimientos, sus columnas y estados derivados. Las confirmaciones realizadas desde el enlace de empleados se conservan en su tabla independiente sin modificar el movimiento. Requiere ejecutar `supabase/2026-07-17-fase2b32-simplificacion-operativa.sql` y redesplegar `gmail-sync-now` y `employee-public-access`.

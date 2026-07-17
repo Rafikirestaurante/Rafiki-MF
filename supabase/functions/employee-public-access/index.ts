@@ -22,8 +22,7 @@ function cleanNote(value: unknown): string {
 
 async function latestFive(client: ReturnType<typeof adminClient>) {
   const { data, error } = await client.from("financial_movements")
-    .select("id,source,movement_type,transaction_at,transaction_date,detail,amount_cop,extraction_status")
-    .neq("extraction_status", "discarded")
+    .select("id,source,movement_type,transaction_at,transaction_date,detail,amount_cop")
     .order("transaction_at", { ascending: false })
     .limit(5);
   if (error) throw new Error(`No se pudieron consultar los movimientos: ${error.message}`);
@@ -140,21 +139,13 @@ Deno.serve(async (request: Request) => {
       if (confirmationError && confirmationError.code !== "23505") throw new Error(`No se pudo guardar la confirmación: ${confirmationError.message}`);
 
       if (!confirmationError) {
-        const { data: currentMovement } = await client.from("financial_movements").select("reviewer_notes").eq("id", movementId).maybeSingle();
-        const previousNotes = String(currentMovement?.reviewer_notes || "").trim();
-        const publicNote = `Confirmado desde enlace de empleados por ${employeeName}${note ? `: ${note}` : ""}`;
-        await client.from("financial_movements").update({
-          extraction_status: "verified",
-          reviewed_at: confirmedAt,
-          reviewer_notes: [previousNotes, publicNote].filter(Boolean).join("\n")
-        }).eq("id", movementId);
         await client.from("document_audit_log").insert({
           entity_type: "financial_movement",
           entity_id: movementId,
           action: "employee_public_confirmation",
           actor_email: `empleado-publico:${session.username}`,
-          new_data: { extraction_status: "verified", employee_name: employeeName, note, confirmed_at: confirmedAt },
-          detail: { phase: "2B.2", public_access: true }
+          new_data: { employee_name: employeeName, note, confirmed_at: confirmedAt },
+          detail: { phase: "2B.3.2", public_access: true, confirmation_stored_separately: true }
         });
       }
 

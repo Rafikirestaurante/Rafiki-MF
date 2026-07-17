@@ -6,8 +6,6 @@ const navigation = [
   { id: "inicio", label: "Inicio", icon: "home" },
   { id: "movimientos", label: "Movimientos", icon: "movements" },
   { id: "facturas", label: "Facturas", icon: "invoice" },
-  { id: "verificacion", label: "Verificación", icon: "check" },
-  { id: "historial", label: "Historial", icon: "history" },
   { id: "configuracion", label: "Configuración", icon: "settings" }
 ];
 
@@ -66,10 +64,10 @@ export default function AppShell({ activePage, onNavigate, profile, onLogout, ch
       </main>
 
       <nav className="bottom-nav">
-        {navigation.slice(0, 5).map((item) => (
+        {navigation.map((item) => (
           <button key={item.id} className={activePage === item.id ? "active" : ""} onClick={() => navigate(item.id)}>
             <Icon name={item.icon} size={20} />
-            <span>{item.id === "verificacion" ? "Verificar" : item.label}</span>
+            <span>{item.label}</span>
           </button>
         ))}
       </nav>

@@ -43,11 +43,11 @@ export default function LoginPage() {
           <div className="showcase-brand"><span>R</span> Rafiki</div>
           <p className="showcase-kicker">CONTROL DOCUMENTAL</p>
           <h1>Movimientos bancarios y facturas, en un solo lugar.</h1>
-          <p className="showcase-copy">Una aplicación independiente para documentar correos financieros, revisar cada registro y cerrar el día con trazabilidad.</p>
+          <p className="showcase-copy">Una aplicación independiente para consultar movimientos bancarios y organizar facturas detectadas desde Gmail.</p>
           <div className="showcase-points">
             <div><Icon name="mail" /><span>Lectura autorizada de Gmail</span></div>
             <div><Icon name="shield" /><span>Datos aislados de Rafiki Pedidos</span></div>
-            <div><Icon name="check" /><span>Verificación manual diaria</span></div>
+            <div><Icon name="check" /><span>Consulta rápida de movimientos</span></div>
           </div>
         </div>
         <div className="showcase-orb orb-one" />
@@ -59,7 +59,7 @@ export default function LoginPage() {
           <div className="login-mobile-brand"><span>R</span><div><strong>Rafiki</strong><small>Movimientos y facturas</small></div></div>
           <span className="eyebrow">{mode === "login" ? "Bienvenido" : "Primer acceso"}</span>
           <h2>{mode === "login" ? "Iniciar sesión" : "Crear cuenta"}</h2>
-          <p>{mode === "login" ? "Ingresa con el usuario autorizado para revisar la información documental." : "La primera cuenta registrada quedará como Administrador."}</p>
+          <p>{mode === "login" ? "Ingresa con el usuario autorizado para consultar la información documental." : "La primera cuenta registrada quedará como Administrador."}</p>
 
           {!supabaseConfigured ? <Alert tone="warning">Faltan las variables de Supabase. Copia <code>.env.example</code> a <code>.env</code> y completa los datos.</Alert> : null}
           {message ? <Alert tone={tone}>{message}</Alert> : null}

@@ -213,7 +213,6 @@ Deno.serve(async (request: Request) => {
     let bancolombiaEmails = 0;
     let movementsCreated = 0;
     let movementDuplicates = 0;
-    let possibleDuplicates = 0;
     let bancolombiaUnidentified = 0;
 
     for (const ref of refs) {
@@ -291,14 +290,16 @@ Deno.serve(async (request: Request) => {
           ].join("|");
           const fingerprint = await sha256Hex(fingerprintSource);
           const { data: existingMovement, error: existingMovementError } = await client.from("financial_movements")
-            .select("id,extraction_status,source_metadata")
+            .select("id,source_metadata")
             .eq("gmail_message_id", message.id)
             .eq("movement_type", extraction.movement_type)
             .maybeSingle();
           if (existingMovementError) throw existingMovementError;
 
+          let movementResult = "movement_created";
           if (existingMovement) {
             movementDuplicates += 1;
+            movementResult = "movement_refreshed";
             const { error: refreshMovementError } = await client.from("financial_movements").update({
               transaction_date: extraction.transaction_date,
               transaction_at: extraction.transaction_at,
@@ -324,34 +325,35 @@ Deno.serve(async (request: Request) => {
               .limit(1)
               .maybeSingle();
             if (fingerprintError) throw fingerprintError;
-            const extractionStatus = fingerprintMatch ? "possible_duplicate" : "pending";
-            if (fingerprintMatch) possibleDuplicates += 1;
 
-            const { error: movementError } = await client.from("financial_movements").insert({
-              gmail_message_id: message.id,
-              gmail_thread_id: fullMessage.threadId || message.threadId || ref.threadId || null,
-              source: "bancolombia",
-              movement_type: extraction.movement_type,
-              transaction_date: extraction.transaction_date,
-              transaction_at: extraction.transaction_at,
-              email_received_at: receivedAt,
-              detail: extraction.detail,
-              amount_cop: extraction.amount_cop,
-              sender_email: senderEmail(fromHeader),
-              email_subject: header(fullMessage, "Subject") || header(message, "Subject"),
-              extraction_status: extractionStatus,
-              extraction_confidence: extraction.extraction_confidence,
-              extractor_version: BANCOLOMBIA_EXTRACTOR_VERSION,
-              raw_fingerprint: fingerprint,
-              reference_text: extraction.reference_text,
-              source_metadata: {
-                ...extraction.source_metadata,
-                sync_run_id: syncRunId,
-                possible_duplicate_of: fingerprintMatch?.id || null
-              }
-            });
-            if (movementError) throw movementError;
-            movementsCreated += 1;
+            if (fingerprintMatch) {
+              movementDuplicates += 1;
+              movementResult = "movement_duplicate_ignored";
+            } else {
+              const { error: movementError } = await client.from("financial_movements").insert({
+                gmail_message_id: message.id,
+                gmail_thread_id: fullMessage.threadId || message.threadId || ref.threadId || null,
+                source: "bancolombia",
+                movement_type: extraction.movement_type,
+                transaction_date: extraction.transaction_date,
+                transaction_at: extraction.transaction_at,
+                email_received_at: receivedAt,
+                detail: extraction.detail,
+                amount_cop: extraction.amount_cop,
+                sender_email: senderEmail(fromHeader),
+                email_subject: header(fullMessage, "Subject") || header(message, "Subject"),
+                extraction_confidence: extraction.extraction_confidence,
+                extractor_version: BANCOLOMBIA_EXTRACTOR_VERSION,
+                raw_fingerprint: fingerprint,
+                reference_text: extraction.reference_text,
+                source_metadata: {
+                  ...extraction.source_metadata,
+                  sync_run_id: syncRunId
+                }
+              });
+              if (movementError) throw movementError;
+              movementsCreated += 1;
+            }
           }
 
           await client.from("gmail_sync_candidates").update({
@@ -359,7 +361,7 @@ Deno.serve(async (request: Request) => {
             raw_metadata: {
               ...baseMetadata,
               source_detected: "bancolombia",
-              extraction_result: existingMovement ? "movement_refreshed" : "movement_created",
+              extraction_result: movementResult,
               movement_type: extraction.movement_type,
               extractor_version: BANCOLOMBIA_EXTRACTOR_VERSION
             }
@@ -407,7 +409,6 @@ Deno.serve(async (request: Request) => {
       bancolombia_emails: bancolombiaEmails,
       movements_created: movementsCreated,
       movement_duplicates: movementDuplicates,
-      possible_duplicates: possibleDuplicates,
       bancolombia_unidentified: bancolombiaUnidentified,
       extractor_version: BANCOLOMBIA_EXTRACTOR_VERSION,
       limited_to: messageLimit
@@ -450,7 +451,6 @@ Deno.serve(async (request: Request) => {
       bancolombia_emails: bancolombiaEmails,
       movements_created: movementsCreated,
       movement_duplicates: movementDuplicates,
-      possible_duplicates: possibleDuplicates,
       bancolombia_unidentified: bancolombiaUnidentified,
       duplicates_ignored: candidateDuplicates + movementDuplicates,
       errors_count: errors

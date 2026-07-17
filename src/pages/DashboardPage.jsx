@@ -9,7 +9,7 @@ function cop(value) {
 
 export default function DashboardPage({ onNavigate }) {
   const today = new Intl.DateTimeFormat("es-CO", { dateStyle: "full", timeZone: "America/Bogota" }).format(new Date());
-  const [summary, setSummary] = useState({ count: 0, income: 0, expense: 0, pending: 0 });
+  const [summary, setSummary] = useState({ count: 0, income: 0, expense: 0, balance: 0 });
 
   useEffect(() => {
     getTodayMovementSummary().then(setSummary).catch(() => undefined);
@@ -17,22 +17,22 @@ export default function DashboardPage({ onNavigate }) {
 
   return (
     <>
-      <PageHeader eyebrow="Resumen documental" title="Inicio" description={`Estado del sistema para ${today}.`} action={<button className="secondary-button" onClick={() => onNavigate("configuracion")}><Icon name="refresh" size={18} /> Sincronizar Gmail</button>} />
+      <PageHeader eyebrow="Resumen documental" title="Inicio" description={`Estado del sistema para ${today}.`} action={<button className="secondary-button" onClick={() => onNavigate("movimientos")}><Icon name="refresh" size={18} /> Abrir movimientos</button>} />
 
       <section className="metrics-grid">
         <MetricCard label="Movimientos detectados" value={String(summary.count)} hint="Hoy" icon="movements" />
         <MetricCard label="Ingresos informativos" value={cop(summary.income)} hint="Sin afectar Caja" icon="check" tone="positive" />
         <MetricCard label="Salidas informativas" value={cop(summary.expense)} hint="Sin crear gastos" icon="invoice" tone="warning" />
-        <MetricCard label="Pendientes de revisión" value={String(summary.pending)} hint="Movimientos de hoy" icon="mail" tone="blue" />
+        <MetricCard label="Balance informativo" value={cop(summary.balance)} hint="Ingresos menos salidas" icon="mail" tone="blue" />
       </section>
 
       <section className="dashboard-columns">
         <article className="panel-card">
           <div className="panel-heading">
-            <div><span className="eyebrow">Operación diaria</span><h2>Verificación de hoy</h2></div>
-            <Badge tone={summary.pending ? "warning" : summary.count ? "success" : "neutral"}>{summary.pending ? `${summary.pending} pendiente${summary.pending === 1 ? "" : "s"}` : summary.count ? "Sin pendientes" : "Sin iniciar"}</Badge>
+            <div><span className="eyebrow">Operación diaria</span><h2>Movimientos de hoy</h2></div>
+            <Badge tone={summary.count ? "success" : "neutral"}>{summary.count ? `${summary.count} registrado${summary.count === 1 ? "" : "s"}` : "Sin movimientos"}</Badge>
           </div>
-          <EmptyState icon="check" title={summary.count ? "Los movimientos ya están disponibles" : "Todavía no hay registros para verificar"} description={summary.count ? "Puedes consultarlos en Movimientos. La edición de estados y observaciones se habilitará en la Fase 2F." : "Sincroniza Gmail para detectar alertas de Bancolombia dentro del rango seleccionado."} action={<button className="secondary-button" onClick={() => onNavigate(summary.count ? "movimientos" : "configuracion")}>{summary.count ? "Abrir movimientos" : "Abrir sincronización"}</button>} />
+          <EmptyState icon="movements" title={summary.count ? "Los movimientos están disponibles" : "Todavía no hay movimientos registrados"} description={summary.count ? "Consulta el detalle, la fecha, la hora, el origen y el valor desde el módulo Movimientos." : "Usa la sincronización rápida para consultar las alertas recientes de Bancolombia."} action={<button className="secondary-button" onClick={() => onNavigate("movimientos")}>Abrir movimientos</button>} />
         </article>
 
         <article className="panel-card readiness-card">

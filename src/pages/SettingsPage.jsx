@@ -205,7 +205,7 @@ export default function SettingsPage({ profile }) {
     try {
       const data = await syncGmailQuick(quickHours);
       setTone(data.errors_count || data.bancolombia_unidentified ? "warning" : "success");
-      setMessage(`Sincronización rápida de ${quickHours} horas: ${data.messages_scanned || data.messages_found || 0} alertas revisadas, ${data.movements_created || 0} movimientos nuevos, ${data.duplicates_ignored || 0} ya registrados y ${data.bancolombia_unidentified || 0} con formato no reconocido.`);
+      setMessage(`Sincronización rápida de ${quickHours} horas: ${data.messages_scanned || data.messages_found || 0} alertas consultadas, ${data.movements_created || 0} movimientos nuevos, ${data.duplicates_ignored || 0} ya registrados y ${data.bancolombia_unidentified || 0} con formato no reconocido.`);
       await load();
     } catch (error) {
       setTone("danger");
@@ -389,12 +389,12 @@ export default function SettingsPage({ profile }) {
 
       <section className="panel-card sync-card">
         <div className="panel-heading">
-          <div><span className="eyebrow">Fase 2B.3.1</span><h2>Sincronización y extractor Bancolombia</h2></div>
+          <div><span className="eyebrow">Fase 2B.3.2</span><h2>Sincronización y extractor Bancolombia</h2></div>
           <Badge tone={lastSync?.status === "success" ? "success" : lastSync?.status === "error" ? "danger" : lastSync ? "warning" : "neutral"}>
             {lastSync ? (lastSync.status === "success" ? "Completada" : lastSync.status === "partial" ? "Con novedades" : lastSync.status === "running" ? "En curso" : "Fallida") : "Sin ejecuciones"}
           </Badge>
         </div>
-        <p className="panel-description">Usa la búsqueda rápida para revisar solo las alertas recientes de Bancolombia. La búsqueda por fechas queda disponible para recuperaciones o revisiones históricas.</p>
+        <p className="panel-description">Usa la búsqueda rápida para revisar solo las alertas recientes de Bancolombia. La búsqueda por fechas queda disponible para recuperaciones o consultas históricas.</p>
         <div className="quick-sync-panel">
           <div><span className="eyebrow">Recomendado</span><strong>Sincronización rápida</strong><small>Consulta únicamente alertas de Bancolombia recibidas durante las últimas horas.</small></div>
           <div className="hour-selector" aria-label="Horas a revisar">
@@ -404,7 +404,7 @@ export default function SettingsPage({ profile }) {
         </div>
         <details className="range-sync-details">
           <summary>Sincronización por rango de fechas</summary>
-          <p>Úsala cuando necesites revisar días anteriores o recuperar correos que no aparecieron en la búsqueda rápida.</p>
+          <p>Úsala cuando necesites consultar días anteriores o recuperar correos que no aparecieron en la búsqueda rápida.</p>
         <div className="sync-controls">
           <label><span>Desde</span><input type="date" value={dateFrom} max={dateTo} onChange={(event) => setDateFrom(event.target.value)} /></label>
           <label><span>Hasta</span><input type="date" value={dateTo} min={dateFrom} max={today} onChange={(event) => setDateTo(event.target.value)} /></label>
@@ -415,7 +415,7 @@ export default function SettingsPage({ profile }) {
         </details>
         {lastSync ? <div className="sync-summary">
           <div><span>Última ejecución</span><strong>{formatDate(lastSync.started_at)}</strong></div>
-          <div><span>Correos revisados</span><strong>{lastSync.messages_scanned || 0}</strong></div>
+          <div><span>Correos consultados</span><strong>{lastSync.messages_scanned || 0}</strong></div>
           <div><span>Correos Bancolombia</span><strong>{lastSync.detail?.bancolombia_emails || 0}</strong></div>
           <div><span>Movimientos creados</span><strong>{lastSync.movements_created || 0}</strong></div>
           <div><span>Ya registrados</span><strong>{lastSync.duplicates_ignored || 0}</strong></div>
@@ -466,8 +466,8 @@ export default function SettingsPage({ profile }) {
       ) : null}
 
       <section className="panel-card phase-card">
-        <div><span className="eyebrow">Versión 1.2.4</span><h2>Fase 2B.3.1 — Corrección del diagnóstico</h2><p>Diagnóstico local cuando una Edge Function no responde, carga independiente de cada servicio y compatibilidad CORS con URLs de producción, dominio y preview.</p></div>
-        <Badge tone="blue">Fase 2B.3.1</Badge>
+        <div><span className="eyebrow">Versión 1.2.5</span><h2>Fase 2B.3.2 — Simplificación operativa</h2><p>Navegación reducida a Inicio, Movimientos, Facturas y Configuración; eliminación del flujo de revisión en movimientos y conservación de confirmaciones de empleados como registro independiente.</p></div>
+        <Badge tone="blue">Fase 2B.3.2</Badge>
       </section>
     </>
   );
