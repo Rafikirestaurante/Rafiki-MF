@@ -14,6 +14,10 @@ const required = [
   "supabase/functions/gmail-disconnect/index.ts",
   "supabase/functions/gmail-sync-now/index.ts",
   "supabase/2026-07-16-fase2a-motor-sincronizacion.sql",
+  "supabase/2026-07-16-fase2b-bancolombia.sql",
+  "supabase/functions/_shared/bancolombia.ts",
+  "src/services/movementService.js",
+  "docs/FASE-2B-BANCOLOMBIA.md",
   "docs/INSTALACION-GMAIL-SUPABASE.md"
 ];
 
@@ -32,4 +36,6 @@ for (const token of expectations) {
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 if (packageJson.name !== "rafiki-movimientos-facturas") throw new Error("Nombre de proyecto inesperado.");
 
-console.log("Validación correcta: Rafiki MF Fase 2A, tablas documentales y 6 Edge Functions presentes.");
+if (packageJson.version !== "1.2.0") throw new Error("Versión esperada: 1.2.0.");
+
+console.log("Validación correcta: Rafiki MF Fase 2B, extractor Bancolombia y 6 Edge Functions presentes.");

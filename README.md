@@ -4,47 +4,56 @@ Aplicación independiente para documentar movimientos bancarios detectados en Gm
 
 ## Versión
 
-**1.0.0 — Fase 1A: Base independiente y preparación Gmail API**
+**1.2.0 — Fase 2B: extractor de movimientos Bancolombia**
 
 ## Alcance de esta entrega
 
-- React + Vite con diseño adaptable a celular y computador.
+- React 18 + Vite con diseño adaptable a celular y computador.
 - PWA interna instalable.
 - Autenticación Supabase por correo y contraseña.
 - Roles `admin` y `reviewer`.
 - La primera cuenta registrada queda como Administrador.
-- Módulos iniciales: Inicio, Movimientos, Facturas, Verificación, Historial y Configuración.
-- Tablas documentales independientes en Supabase.
-- Infraestructura OAuth 2.0 de Gmail API.
+- Módulos: Inicio, Movimientos, Facturas, Verificación, Historial y Configuración.
+- Supabase independiente y separado de Rafiki Pedidos.
+- OAuth 2.0 de Gmail con permiso de solo lectura.
 - Refresh token cifrado con AES-256-GCM.
-- Funciones para conectar, probar y desconectar Gmail.
+- Sincronización manual por rango de fechas.
+- Registro técnico de candidatos de Gmail.
+- Extractor Bancolombia para ingresos, transferencias y compras con tarjeta.
+- Normalización de fechas, valores COP, detalle y referencia.
+- Control primario de duplicados por `gmail_message_id + movement_type`.
+- Visualización de movimientos y resumen informativo del día.
 
-## Lo que todavía no hace
+## Pendiente para próximas etapas
 
-- No escanea mensajes de Gmail.
-- No ejecuta reglas de Bancolombia o Nequi.
-- No procesa ZIP/XML de facturación.
-- No afecta Caja, Cartera, Gastos o Pedidos.
-- No se conecta con el proyecto Supabase de Rafiki Pedidos.
+- Extractor Nequi.
+- Lectura de ZIP, XML y PDF de facturación electrónica.
+- Control definitivo de duplicados.
+- Edición de estados, observaciones y verificación diaria.
+- Historial operativo completo.
+
+La aplicación no afecta Caja, Cartera, Gastos ni Pedidos y no utiliza el proyecto Supabase de Rafiki Pedidos.
 
 ## Instalación rápida
 
-1. Crea un proyecto Supabase nuevo.
-2. Ejecuta `supabase/2026-07-14-fase1a-base-independiente.sql`.
-3. Copia `.env.example` como `.env` y configura Supabase.
-4. Instala dependencias con `npm install`.
-5. Ejecuta `npm run dev`.
-6. Crea la primera cuenta desde la aplicación.
-7. Sigue `docs/INSTALACION-GMAIL-SUPABASE.md` para conectar Gmail API.
+1. Ejecuta los SQL en orden:
+   - `supabase/2026-07-14-fase1a-base-independiente.sql`
+   - `supabase/2026-07-16-fase2a-motor-sincronizacion.sql`
+   - `supabase/2026-07-16-fase2b-bancolombia.sql`
+2. Copia `.env.example` como `.env` y configura Supabase.
+3. Instala dependencias con `npm install --package-lock=false`.
+4. Ejecuta `npm run dev`.
+5. Sigue `docs/INSTALACION-GMAIL-SUPABASE.md` para conectar Gmail API.
+6. Consulta `docs/FASE-2B-BANCOLOMBIA.md` para desplegar y probar esta fase.
 
 ## Comandos
 
 ```bash
-npm install
-npm run dev
-npm run build
+npm install --package-lock=false
+npm test
 npm run lint
 npm run validate
+npm run build
 ```
 
 ## Seguridad
@@ -56,9 +65,6 @@ Nunca subas al repositorio:
 - Service Role Key de Supabase
 - Refresh token de Gmail
 - `GMAIL_TOKEN_ENCRYPTION_KEY`
+- `package-lock.json`
 
 Los secretos de Gmail deben configurarse exclusivamente en Supabase Edge Functions.
-
-## Fase 1A.2 — Despliegue 100 % cloud
-
-Se agregó GitHub Actions para desplegar las cinco Edge Functions de Supabase sin ejecutar comandos ni instalar herramientas en el computador del usuario. Consulta `docs/DESPLIEGUE-100-CLOUD.md`.

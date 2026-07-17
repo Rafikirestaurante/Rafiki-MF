@@ -119,7 +119,7 @@ export default function SettingsPage({ profile }) {
     try {
       const data = await syncGmailNow(dateFrom, dateTo);
       setTone(data.errors_count ? "warning" : "success");
-      setMessage(`Sincronización terminada: ${data.messages_found || 0} correos encontrados, ${data.candidates_created || 0} candidatos nuevos y ${data.duplicates_ignored || 0} ya registrados.`);
+      setMessage(`Sincronización terminada: ${data.messages_found || 0} correos revisados, ${data.bancolombia_emails || 0} de Bancolombia y ${data.movements_created || 0} movimientos nuevos.`);
       await load();
     } catch (error) {
       setTone("danger");
@@ -197,12 +197,12 @@ export default function SettingsPage({ profile }) {
 
       <section className="panel-card sync-card">
         <div className="panel-heading">
-          <div><span className="eyebrow">Fase 2A</span><h2>Sincronización manual de Gmail</h2></div>
+          <div><span className="eyebrow">Fase 2B</span><h2>Sincronización y extractor Bancolombia</h2></div>
           <Badge tone={lastSync?.status === "success" ? "success" : lastSync?.status === "error" ? "danger" : lastSync ? "warning" : "neutral"}>
             {lastSync ? (lastSync.status === "success" ? "Completada" : lastSync.status === "partial" ? "Con novedades" : lastSync.status === "running" ? "En curso" : "Fallida") : "Sin ejecuciones"}
           </Badge>
         </div>
-        <p className="panel-description">Consulta correos por rango de fechas y los registra como candidatos técnicos. Todavía no crea movimientos ni facturas.</p>
+        <p className="panel-description">Consulta correos por rango de fechas. Las alertas válidas de Bancolombia crean movimientos informativos; los demás correos permanecen como candidatos para las siguientes etapas.</p>
         <div className="sync-controls">
           <label><span>Desde</span><input type="date" value={dateFrom} max={dateTo} onChange={(event) => setDateFrom(event.target.value)} /></label>
           <label><span>Hasta</span><input type="date" value={dateTo} min={dateFrom} max={today} onChange={(event) => setDateTo(event.target.value)} /></label>
@@ -213,6 +213,8 @@ export default function SettingsPage({ profile }) {
         {lastSync ? <div className="sync-summary">
           <div><span>Última ejecución</span><strong>{formatDate(lastSync.started_at)}</strong></div>
           <div><span>Correos revisados</span><strong>{lastSync.messages_scanned || 0}</strong></div>
+          <div><span>Correos Bancolombia</span><strong>{lastSync.detail?.bancolombia_emails || 0}</strong></div>
+          <div><span>Movimientos creados</span><strong>{lastSync.movements_created || 0}</strong></div>
           <div><span>Ya registrados</span><strong>{lastSync.duplicates_ignored || 0}</strong></div>
           <div><span>Errores</span><strong>{lastSync.errors_count || 0}</strong></div>
         </div> : null}
@@ -234,8 +236,8 @@ export default function SettingsPage({ profile }) {
       ) : null}
 
       <section className="panel-card phase-card">
-        <div><span className="eyebrow">Versión 1.1.0</span><h2>Fase 2A — Motor de sincronización manual</h2><p>Consulta Gmail por rango de fechas, registra candidatos técnicos y conserva trazabilidad de ejecuciones y errores sin crear todavía movimientos ni facturas.</p></div>
-        <Badge tone="blue">Fase 2A</Badge>
+        <div><span className="eyebrow">Versión 1.2.0</span><h2>Fase 2B — Extractor Bancolombia</h2><p>Detecta el remitente autorizado, lee el contenido de las alertas, normaliza valores y fechas, y registra ingresos, transferencias y compras sin duplicar el mismo correo.</p></div>
+        <Badge tone="blue">Fase 2B</Badge>
       </section>
     </>
   );

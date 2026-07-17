@@ -1,58 +1,66 @@
 # Cronograma — Rafiki Movimientos y Facturas
 
-## Fase 1 — Base independiente
+## Fase 1 — Infraestructura independiente — Completada
 
-### 1A — Estructura inicial
-
-- React + Vite.
-- Supabase independiente.
+- React 18 + Vite y PWA interna.
+- Proyecto Supabase independiente.
 - Autenticación y roles.
-- Diseño adaptable.
 - Tablas documentales.
-- Infraestructura OAuth Gmail.
+- Google Cloud, Gmail API y OAuth 2.0.
+- Cinco Edge Functions de conexión y despliegue cloud.
 
-### 1B — Administración de usuarios
+## Fase 2 — Lectura y procesamiento real de Gmail
 
-- Crear y desactivar revisores.
-- Cambiar roles.
-- Auditoría administrativa.
-- Recuperación de contraseña.
+### 2A — Motor de sincronización manual — Completada
 
-## Fase 2 — Gmail API
+- Consulta de Gmail por rango de fechas.
+- Renovación del token.
+- Registro de ejecuciones, candidatos y errores.
+- Control de ejecución simultánea.
 
-- Conexión real.
-- Pruebas de renovación del token.
-- Ejecución manual.
-- Historial de sincronizaciones.
-- Diagnóstico y reintentos.
+### 2B — Bancolombia — Completada en versión 1.2.0
 
-## Fase 3 — Movimientos bancarios
+- Detección del remitente autorizado.
+- Ingresos, transferencias y compras con tarjeta.
+- Fecha, valor, detalle y referencia.
+- Normalización COP.
+- Control primario por ID del mensaje.
+- Visualización en Movimientos.
 
-- Bancolombia: ingresos, transferencias y compras.
-- Nequi: ingresos, envíos y pagos.
-- Control por ID de mensaje.
-- Posibles duplicados.
-- Corrección manual.
+### 2C — Nequi
 
-## Fase 4 — Facturación electrónica
+- Procesar `notificaciones@nequi.com.co` y `somos@nequi.com.co`.
+- Diferenciar ingreso, transferencia y pago.
+- Interpretar fechas en español y abreviadas.
 
-- Lectura de ZIP.
-- XML de factura, nota crédito y nota débito.
-- Proveedor, NIT, número, CUFE y valores.
-- Documentos incompletos y duplicados.
+### 2D — Facturas electrónicas
 
-## Fase 5 — Verificación diaria
+- Detectar ZIP, XML y PDF.
+- Descargar adjuntos.
+- Extraer proveedor, número, CUFE y valores.
+- Vincular con el correo original.
 
-- Estados de revisión.
-- Totales informativos.
-- Cierre documental.
-- Reapertura con motivo.
-- Auditoría.
+### 2E — Control de duplicados
 
-## Fase 6 — Historial y automatización
+- Llaves únicas definitivas.
+- Huellas secundarias.
+- Reintentos seguros.
+- Resolución de posibles duplicados.
 
-- Cron de Supabase.
-- Filtros por rango.
-- Exportación Excel.
-- Alertas de error.
-- Informes documentales.
+### 2F — Verificación diaria
+
+- Estados Pendiente, Verificado y Descartado.
+- Observaciones y responsables.
+- Totales informativos y cierre diario.
+
+### 2G — Historial y auditoría
+
+- Ejecuciones, errores, usuarios y acciones.
+- Filtros y consulta detallada.
+
+### 2H — Pruebas y cierre
+
+- Correos reales y formatos inesperados.
+- Adjuntos dañados.
+- Duplicados y reintentos.
+- Versión estable para operación diaria.

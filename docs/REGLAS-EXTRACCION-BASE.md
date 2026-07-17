@@ -1,6 +1,6 @@
 # Reglas de extracción heredadas
 
-Estas reglas provienen del prototipo AppSheet + Google Sheets. Se conservarán como referencia para la Fase 3, pero se implementarán en Gmail API con identificación por `messageId` y trazabilidad en Supabase.
+Estas reglas provienen del prototipo AppSheet + Google Sheets. Bancolombia se implementó en la Fase 2B y las reglas restantes se implementarán en Gmail API con identificación por `messageId` y trazabilidad en Supabase.
 
 ## Bancolombia
 

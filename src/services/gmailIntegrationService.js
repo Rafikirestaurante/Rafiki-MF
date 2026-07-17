@@ -30,7 +30,7 @@ export const syncGmailNow = (dateFrom, dateTo) => invoke("gmail-sync-now", { dat
 
 export async function getRecentSyncRuns(limit = 10) {
   if (!supabaseConfigured || !supabase) throw new Error("Supabase todavía no está configurado.");
-  const { data, error } = await supabase.from("gmail_sync_runs").select("id,status,started_at,finished_at,messages_scanned,duplicates_ignored,errors_count,detail").order("started_at", { ascending: false }).limit(limit);
+  const { data, error } = await supabase.from("gmail_sync_runs").select("id,status,started_at,finished_at,messages_scanned,movements_created,duplicates_ignored,errors_count,detail").order("started_at", { ascending: false }).limit(limit);
   if (error) throw new Error(error.message || "No se pudo consultar el historial de sincronizaciones.");
   return data || [];
 }
