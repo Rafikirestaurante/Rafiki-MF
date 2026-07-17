@@ -58,3 +58,7 @@ Nunca subas al repositorio:
 - `GMAIL_TOKEN_ENCRYPTION_KEY`
 
 Los secretos de Gmail deben configurarse exclusivamente en Supabase Edge Functions.
+
+## Fase 1A.2 — Despliegue 100 % cloud
+
+Se agregó GitHub Actions para desplegar las cinco Edge Functions de Supabase sin ejecutar comandos ni instalar herramientas en el computador del usuario. Consulta `docs/DESPLIEGUE-100-CLOUD.md`.
