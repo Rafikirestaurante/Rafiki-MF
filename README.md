@@ -88,3 +88,7 @@ La ruta `/empleados` permite consultar solamente los cinco movimientos más reci
 - La sincronización histórica por rango de fechas continúa disponible.
 - Nueva Edge Function: `gmail-diagnostics`.
 - No requiere una migración SQL adicional.
+
+## Fase 2B.3.1 — Corrección del diagnóstico de Edge Functions
+
+La versión 1.2.4 diferencia “Sin conectar” de “Estado no disponible”, mantiene el diagnóstico visible aunque Supabase no responda y corrige bloqueos CORS entre URLs de Vercel y las Edge Functions. No requiere SQL nuevo. Es obligatorio redesplegar todas las funciones para incorporar el archivo compartido `_shared/cors.ts`.

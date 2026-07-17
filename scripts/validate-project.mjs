@@ -23,6 +23,7 @@ const required = [
   "docs/FASE-2B1-FECHA-HORA-MOVIMIENTOS.md",
   "docs/FASE-2B2-ACCESO-PUBLICO-EMPLEADOS.md",
   "docs/FASE-2B3-DIAGNOSTICO-SINCRONIZACION-RAPIDA.md",
+  "docs/FASE-2B31-CORRECCION-DIAGNOSTICO-CORS.md",
   "docs/INSTALACION-GMAIL-SUPABASE.md",
   "src/pages/EmployeePublicPage.jsx",
   "src/services/employeeAccessService.js",
@@ -47,6 +48,6 @@ for (const token of expectations) {
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 if (packageJson.name !== "rafiki-movimientos-facturas") throw new Error("Nombre de proyecto inesperado.");
 
-if (packageJson.version !== "1.2.3") throw new Error("Versión esperada: 1.2.3.");
+if (packageJson.version !== "1.2.4") throw new Error("Versión esperada: 1.2.4.");
 
-console.log("Validación correcta: Rafiki MF Fase 2B.3 con diagnóstico Gmail y sincronización rápida.");
+console.log("Validación correcta: Rafiki MF Fase 2B.3.1 con diagnóstico resistente a fallos de comunicación.");

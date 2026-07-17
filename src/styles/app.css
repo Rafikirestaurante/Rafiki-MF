@@ -499,3 +499,28 @@ code { font-size: .9em; background: rgba(16,42,67,.08); padding: 2px 5px; border
 .unrecognized-alerts article span { color: var(--muted); font-size: 9px; white-space: nowrap; }
 .unrecognized-alerts article p { margin: 6px 0 0; color: var(--muted); font-size: 10px; line-height: 1.4; }
 .connection-errors-visible { margin: 11px 0 2px; }
+
+.communication-diagnostic {
+  margin: 0 0 18px;
+  border: 1px solid rgba(185, 28, 28, 0.24);
+  border-radius: 18px;
+  background: rgba(254, 242, 242, 0.9);
+  padding: 14px 16px;
+}
+
+.communication-diagnostic > summary {
+  cursor: pointer;
+  font-weight: 800;
+  color: #991b1b;
+}
+
+.communication-diagnostic-intro {
+  margin: 10px 0 12px;
+  color: #7f1d1d;
+  line-height: 1.5;
+}
+
+.communication-diagnostic article small {
+  display: block;
+  overflow-wrap: anywhere;
+}

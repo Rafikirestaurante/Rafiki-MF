@@ -8,7 +8,8 @@ import {
   startGmailConnection,
   syncGmailNow,
   syncGmailQuick,
-  getRecentSyncRuns
+  getRecentSyncRuns,
+  edgeErrorDetails
 } from "../services/gmailIntegrationService.js";
 import { getEmployeeAccessSettings, saveEmployeeAccessSettings } from "../services/employeeAccessService.js";
 
@@ -38,6 +39,7 @@ export default function SettingsPage({ profile }) {
   const [dateTo, setDateTo] = useState(today);
   const [lastSync, setLastSync] = useState(null);
   const [diagnostics, setDiagnostics] = useState(null);
+  const [communicationIssues, setCommunicationIssues] = useState([]);
   const [quickHours, setQuickHours] = useState(2);
   const [employeeAccess, setEmployeeAccess] = useState({ configured: false, enabled: false, username: "empleados", password_configured: false, public_url: "" });
   const [employeeUsername, setEmployeeUsername] = useState("empleados");
@@ -49,13 +51,15 @@ export default function SettingsPage({ profile }) {
 
   const isAdmin = profile?.role === "admin";
   const connection = status.connection;
-  const connected = Boolean(status.configured && connection?.status === "connected");
-  const canAttemptGmail = Boolean(status.configured && connection?.status !== "disconnected");
+  const statusUnavailable = Boolean(status.unavailable);
+  const connected = Boolean(!statusUnavailable && status.configured && connection?.status === "connected");
+  const canAttemptGmail = Boolean(!statusUnavailable && status.configured && connection?.status !== "disconnected");
   const visual = useMemo(() => {
+    if (statusUnavailable) return { label: "No disponible", tone: "danger" };
     if (connected) return { label: "Conectado", tone: "success" };
     if (connection?.status === "error") return { label: "Requiere atención", tone: "danger" };
     return { label: "Sin conectar", tone: "neutral" };
-  }, [connected, connection?.status]);
+  }, [connected, connection?.status, statusUnavailable]);
 
   const load = useCallback(async () => {
     if (!isAdmin) {
@@ -63,23 +67,52 @@ export default function SettingsPage({ profile }) {
       return;
     }
     setLoading(true);
-    try {
-      const [gmailStatus, runs, publicAccess] = await Promise.all([
-        getGmailConnectionStatus(),
-        getRecentSyncRuns(1),
-        getEmployeeAccessSettings()
-      ]);
-      setStatus(gmailStatus);
-      setLastSync(runs[0] || null);
+    const results = await Promise.allSettled([
+      getGmailConnectionStatus(),
+      getRecentSyncRuns(1),
+      getEmployeeAccessSettings()
+    ]);
+
+    const issues = [];
+    const [gmailResult, runsResult, publicResult] = results;
+
+    if (gmailResult.status === "fulfilled") {
+      setStatus({ ...gmailResult.value, unavailable: false, load_error: null });
+    } else {
+      const detail = edgeErrorDetails(gmailResult.reason, "gmail-connection-status");
+      issues.push(detail);
+      setStatus({ configured: false, connection: null, recent_errors: [], unavailable: true, load_error: detail });
+    }
+
+    if (runsResult.status === "fulfilled") {
+      setLastSync(runsResult.value[0] || null);
+    } else {
+      issues.push({
+        function_name: "Consulta de historial",
+        category: "database",
+        message: runsResult.reason?.message || "No se pudo consultar el historial.",
+        original_message: runsResult.reason?.message || "No se pudo consultar el historial.",
+        endpoint: "Supabase Data API",
+        browser_origin: window.location.origin,
+        online: navigator.onLine
+      });
+    }
+
+    if (publicResult.status === "fulfilled") {
+      const publicAccess = publicResult.value;
       setEmployeeAccess(publicAccess);
       setEmployeeUsername(publicAccess.username || "empleados");
       setEmployeeEnabled(Boolean(publicAccess.enabled));
-    } catch (error) {
-      setTone("danger");
-      setMessage(error.message || "No se pudo consultar la conexión con Gmail.");
-    } finally {
-      setLoading(false);
+    } else {
+      issues.push(edgeErrorDetails(publicResult.reason, "employee-access-admin"));
     }
+
+    setCommunicationIssues(issues);
+    if (issues.length) {
+      setTone("danger");
+      setMessage(`Se detectaron ${issues.length} problema${issues.length === 1 ? "" : "s"} de comunicación. Abre el diagnóstico técnico para ver la función afectada y la corrección recomendada.`);
+    }
+    setLoading(false);
   }, [isAdmin]);
 
   useEffect(() => {
@@ -127,8 +160,40 @@ export default function SettingsPage({ profile }) {
         : data.summary_error || "El verificador encontró problemas en la conexión.");
       await load();
     } catch (error) {
+      const detail = edgeErrorDetails(error, "gmail-diagnostics");
+      setCommunicationIssues((current) => [detail, ...current.filter((item) => item.function_name !== detail.function_name)]);
+      setDiagnostics({
+        ok: false,
+        local_diagnostic: true,
+        checked_at: new Date().toISOString(),
+        summary_error: detail.message,
+        checks: [
+          {
+            key: "browser-network",
+            label: "Conexión del dispositivo",
+            ok: Boolean(detail.online),
+            message: detail.online ? "El navegador informa que tiene conexión a internet." : "El navegador informa que no tiene conexión a internet."
+          },
+          {
+            key: "edge-transport",
+            label: `Comunicación con ${detail.function_name}`,
+            ok: false,
+            message: detail.message,
+            error: detail.original_message
+          },
+          {
+            key: "browser-origin",
+            label: "Origen de la aplicación",
+            ok: false,
+            message: `La aplicación se está abriendo desde ${detail.browser_origin || "un origen no identificado"}. Confirma que las Edge Functions fueron redesplegadas con la corrección CORS.`,
+            error: detail.endpoint ? `Destino: ${detail.endpoint}` : "No fue posible construir la URL de la función."
+          }
+        ],
+        recent_errors: [],
+        unrecognized_alerts: []
+      });
       setTone("danger");
-      setMessage(error.message || "No se pudo ejecutar el verificador de conexión.");
+      setMessage(detail.message);
     } finally {
       setAction("");
     }
@@ -218,6 +283,21 @@ export default function SettingsPage({ profile }) {
 
       {!isAdmin ? <Alert tone="warning">Solo un Administrador puede configurar la conexión con Gmail.</Alert> : null}
       {message ? <Alert tone={tone}>{message}</Alert> : null}
+      {communicationIssues.length ? (
+        <details className="technical-errors communication-diagnostic" open>
+          <summary>Diagnóstico técnico de comunicación ({communicationIssues.length})</summary>
+          <p className="communication-diagnostic-intro">Estos errores ocurren antes de comprobar Gmail. Por eso no deben interpretarse automáticamente como “Gmail desconectado”.</p>
+          <div>{communicationIssues.map((item, index) => (
+            <article key={`${item.function_name}-${index}`}>
+              <div><strong>{item.function_name}</strong><span>{item.category === "transport" ? "Comunicación/CORS" : item.category}</span></div>
+              <p>{item.message}</p>
+              <small>Navegador: {item.online ? "con conexión" : "sin conexión"} · Origen: {item.browser_origin || "—"}</small>
+              {item.endpoint ? <small>Destino: {item.endpoint}</small> : null}
+            </article>
+          ))}</div>
+          <Alert tone="warning">Después de instalar esta corrección, vuelve a desplegar todas las Edge Functions. El archivo compartido de CORS solo se actualiza dentro de cada función cuando esa función se redespliega.</Alert>
+        </details>
+      ) : null}
 
       <section className="settings-grid">
         <article className="panel-card gmail-card">
@@ -228,12 +308,13 @@ export default function SettingsPage({ profile }) {
           <p className="panel-description">La aplicación solicitará acceso de solo lectura para analizar únicamente los correos definidos por las reglas documentales.</p>
 
           <div className="connection-details">
-            <div><span>Cuenta autorizada</span><strong>{loading ? "Consultando..." : connection?.google_email || "Sin conectar"}</strong></div>
+            <div><span>Cuenta autorizada</span><strong>{loading ? "Consultando..." : statusUnavailable ? "No se pudo consultar" : connection?.google_email || "Sin conectar"}</strong></div>
             <div><span>Fecha de conexión</span><strong>{formatDate(connection?.connected_at)}</strong></div>
             <div><span>Última prueba</span><strong>{formatDate(connection?.last_verified_at)}</strong></div>
             <div><span>Permiso</span><strong>Solo lectura</strong></div>
           </div>
 
+          {statusUnavailable ? <Alert tone="danger"><strong>Estado no disponible:</strong> la aplicación no pudo comunicarse con la función que consulta Gmail. Esto no confirma que la cuenta esté desconectada.</Alert> : null}
           {connection?.last_error ? <Alert tone="danger"><strong>Último error registrado:</strong> {connection.last_error}</Alert> : null}
           {!diagnostics && connection?.status === "error" && (status.recent_errors || []).length ? (
             <details className="technical-errors connection-errors-visible">
@@ -245,8 +326,13 @@ export default function SettingsPage({ profile }) {
           ) : null}
 
           <div className="button-row">
-            {!canAttemptGmail ? (
-              <button className="primary-button" onClick={connect} disabled={!isAdmin || loading || Boolean(action)}><Icon name="mail" size={18} /> {action === "connect" ? "Abriendo Google..." : "Conectar Gmail"}</button>
+            {statusUnavailable ? (
+              <button className="primary-button" onClick={test} disabled={!isAdmin || Boolean(action)}><Icon name="refresh" size={18} /> {action === "test" ? "Diagnosticando..." : "Diagnosticar comunicación"}</button>
+            ) : !canAttemptGmail ? (
+              <>
+                <button className="primary-button" onClick={connect} disabled={!isAdmin || loading || Boolean(action)}><Icon name="mail" size={18} /> {action === "connect" ? "Abriendo Google..." : "Conectar Gmail"}</button>
+                <button className="secondary-button" onClick={test} disabled={!isAdmin || Boolean(action)}><Icon name="refresh" size={18} /> {action === "test" ? "Verificando..." : "Verificar funciones"}</button>
+              </>
             ) : (
               <>
                 <button className="primary-button" onClick={test} disabled={!isAdmin || Boolean(action)}><Icon name="refresh" size={18} /> {action === "test" ? "Verificando..." : "Verificar conexión"}</button>
@@ -303,7 +389,7 @@ export default function SettingsPage({ profile }) {
 
       <section className="panel-card sync-card">
         <div className="panel-heading">
-          <div><span className="eyebrow">Fase 2B.3</span><h2>Sincronización y extractor Bancolombia</h2></div>
+          <div><span className="eyebrow">Fase 2B.3.1</span><h2>Sincronización y extractor Bancolombia</h2></div>
           <Badge tone={lastSync?.status === "success" ? "success" : lastSync?.status === "error" ? "danger" : lastSync ? "warning" : "neutral"}>
             {lastSync ? (lastSync.status === "success" ? "Completada" : lastSync.status === "partial" ? "Con novedades" : lastSync.status === "running" ? "En curso" : "Fallida") : "Sin ejecuciones"}
           </Badge>
@@ -335,7 +421,7 @@ export default function SettingsPage({ profile }) {
           <div><span>Ya registrados</span><strong>{lastSync.duplicates_ignored || 0}</strong></div>
           <div><span>Errores</span><strong>{lastSync.errors_count || 0}</strong></div>
         </div> : null}
-        {!canAttemptGmail ? <Alert tone="warning">Conecta Gmail antes de ejecutar una sincronización.</Alert> : null}
+        {statusUnavailable ? <Alert tone="danger">La sincronización está bloqueada porque no se pudo comprobar la comunicación con las Edge Functions. Ejecuta “Diagnosticar comunicación”.</Alert> : !canAttemptGmail ? <Alert tone="warning">Conecta Gmail antes de ejecutar una sincronización.</Alert> : null}
       </section>
 
       <section className="panel-card employee-access-settings-card">
@@ -380,8 +466,8 @@ export default function SettingsPage({ profile }) {
       ) : null}
 
       <section className="panel-card phase-card">
-        <div><span className="eyebrow">Versión 1.2.3</span><h2>Fase 2B.3 — Diagnóstico y sincronización rápida</h2><p>Verificador detallado de Gmail y búsqueda rápida de alertas Bancolombia durante las últimas 2, 6 o 12 horas.</p></div>
-        <Badge tone="blue">Fase 2B.3</Badge>
+        <div><span className="eyebrow">Versión 1.2.4</span><h2>Fase 2B.3.1 — Corrección del diagnóstico</h2><p>Diagnóstico local cuando una Edge Function no responde, carga independiente de cada servicio y compatibilidad CORS con URLs de producción, dominio y preview.</p></div>
+        <Badge tone="blue">Fase 2B.3.1</Badge>
       </section>
     </>
   );
