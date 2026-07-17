@@ -95,7 +95,7 @@ export const testGmailConnection = () => invoke("gmail-test-connection");
 export const diagnoseGmailConnection = () => invoke("gmail-diagnostics");
 export const disconnectGmail = () => invoke("gmail-disconnect");
 export const syncGmailNow = (dateFrom, dateTo) => invoke("gmail-sync-now", { mode: "range", date_from: dateFrom, date_to: dateTo });
-export const syncGmailQuick = (hours = 2) => invoke("gmail-sync-now", { mode: "quick", hours });
+export const syncGmailQuick = () => invoke("gmail-sync-now", { mode: "quick" });
 
 export async function getRecentSyncRuns(limit = 10) {
   if (!supabaseConfigured || !supabase) throw new Error("Supabase todavía no está configurado.");

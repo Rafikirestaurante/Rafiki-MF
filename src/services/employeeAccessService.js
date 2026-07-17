@@ -72,7 +72,6 @@ export async function confirmEmployeePayment(token, movementId, employeeName, no
   return invoke("employee-public-access", { action: "confirm", movement_id: movementId, employee_name: employeeName, note }, token);
 }
 
-export async function syncEmployeePublicMovements(token, hours = 2) {
-  const quickHours = [2, 6, 12].includes(Number(hours)) ? Number(hours) : 2;
-  return invoke("gmail-sync-now", { mode: "quick", hours: quickHours }, token);
+export async function syncEmployeePublicMovements(token) {
+  return invoke("gmail-sync-now", { mode: "quick" }, token);
 }

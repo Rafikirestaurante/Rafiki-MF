@@ -451,7 +451,7 @@ code { font-size: .9em; background: rgba(16,42,67,.08); padding: 2px 5px; border
 .technical-errors article strong { font-size: 10px; color: var(--red); }
 .technical-errors article span, .technical-errors article small { color: var(--muted); font-size: 9px; }
 .technical-errors article p { margin: 6px 0; color: var(--ink); font-size: 10px; line-height: 1.45; overflow-wrap: anywhere; }
-.quick-sync-panel, .quick-movement-sync-card { display: grid; grid-template-columns: minmax(250px, 1fr) auto auto; align-items: center; gap: 14px; margin: 18px 0; padding: 17px 19px; border: 1px solid #cfe0eb; border-radius: 15px; background: linear-gradient(135deg, #f7fbfd, #edf5f9); }
+.quick-sync-panel, .quick-movement-sync-card { display: grid; grid-template-columns: minmax(250px, 1fr) auto; align-items: center; gap: 14px; margin: 18px 0; padding: 17px 19px; border: 1px solid #cfe0eb; border-radius: 15px; background: linear-gradient(135deg, #f7fbfd, #edf5f9); }
 .quick-sync-panel > div:first-child, .quick-movement-sync-card > div:first-child { display: grid; gap: 4px; }
 .quick-sync-panel > div:first-child > strong, .quick-movement-sync-card > div:first-child > strong { color: var(--navy); font-size: 16px; }
 .quick-sync-panel small, .quick-movement-sync-card small { color: var(--muted); line-height: 1.4; }
@@ -509,11 +509,11 @@ code { font-size: .9em; background: rgba(16,42,67,.08); padding: 2px 5px; border
   overflow-wrap: anywhere;
 }
 
-/* Fase 2B.3.3 — sincronización rápida y PWA independiente de empleados */
+/* Fase 2B.3.4 — búsqueda rápida de 20 alertas y PWA independiente de empleados */
 .employee-header-actions { display: flex; align-items: center; gap: 8px; }
 .employee-quick-sync-card {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) auto auto;
+  grid-template-columns: minmax(260px, 1fr) auto;
   align-items: center;
   gap: 14px;
   margin: 0 0 18px;

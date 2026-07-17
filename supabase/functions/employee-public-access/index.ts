@@ -87,7 +87,7 @@ Deno.serve(async (request: Request) => {
         success: valid,
         client_key: clientKey,
         access_username: username || null,
-        detail: { phase: "2B.3.3" }
+        detail: { phase: "2B.3.4" }
       });
       if (!valid || !settings) return jsonResponse(request, { error: "Nombre o contraseña incorrectos, o acceso desactivado." }, 401);
 
@@ -97,7 +97,7 @@ Deno.serve(async (request: Request) => {
         access_token: session.token,
         expires_at: session.expires_at,
         username: settings.username,
-        restrictions: { movement_limit: 5, sync_hours: [2, 6, 12], confirm_income_only: true }
+        restrictions: { movement_limit: 5, quick_window_hours: 1, quick_message_limit: 20, confirm_income_only: true }
       });
     }
 
@@ -110,7 +110,7 @@ Deno.serve(async (request: Request) => {
         success: true,
         client_key: clientKey,
         access_username: session.username,
-        detail: { count: movements.length, phase: "2B.3.3" }
+        detail: { count: movements.length, phase: "2B.3.4" }
       });
       return jsonResponse(request, { movements, limit: 5, username: session.username });
     }
@@ -155,7 +155,7 @@ Deno.serve(async (request: Request) => {
         client_key: clientKey,
         access_username: session.username,
         movement_id: movementId,
-        detail: { employee_name: employeeName, duplicate_request: Boolean(confirmationError), phase: "2B.3.3" }
+        detail: { employee_name: employeeName, duplicate_request: Boolean(confirmationError), phase: "2B.3.4" }
       });
       return jsonResponse(request, { confirmed: true, already_confirmed: Boolean(confirmationError), confirmed_at: confirmedAt, employee_name: employeeName });
     }

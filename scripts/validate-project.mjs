@@ -34,6 +34,7 @@ const required = [
   "supabase/functions/employee-public-access/index.ts",
   "supabase/2026-07-17-fase2b32-simplificacion-operativa.sql",
   "docs/FASE-2B33-PWA-SINCRONIZACION-EMPLEADOS.md",
+  "docs/FASE-2B34-BUSQUEDA-RAPIDA-20-ALERTAS.md",
   "public/manifest.webmanifest",
   "public/empleados.webmanifest",
   "public/empleados-icon-192.png",
@@ -55,6 +56,6 @@ for (const token of expectations) {
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 if (packageJson.name !== "rafiki-movimientos-facturas") throw new Error("Nombre de proyecto inesperado.");
 
-if (packageJson.version !== "1.2.6") throw new Error("Versión esperada: 1.2.6.");
+if (packageJson.version !== "1.2.7") throw new Error("Versión esperada: 1.2.7.");
 
-console.log("Validación correcta: Rafiki MF Fase 2B.3.3 con PWA independiente y sincronización rápida para empleados.");
+console.log("Validación correcta: Rafiki MF Fase 2B.3.4 con búsqueda rápida de 20 alertas Bancolombia en la última hora.");

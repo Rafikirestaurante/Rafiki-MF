@@ -98,3 +98,8 @@ La versión 1.2.5 reduce la navegación principal a Inicio, Movimientos, Factura
 ## Fase 2B.3.3 — PWA y sincronización rápida para empleados
 
 La versión 1.2.6 incorpora en `/empleados` el selector de sincronización rápida de 2, 6 y 12 horas, con 2 horas como opción predeterminada y límite de una ejecución por minuto. La ruta pública puede instalarse como una PWA independiente llamada **Rafiki Empleados**, con manifiesto, iconos e inicio directo propios. No requiere SQL nuevo; se deben redesplegar `gmail-sync-now` y `employee-public-access`.
+
+
+## Fase 2B.3.4 — Búsqueda rápida de 20 alertas
+
+La versión 1.2.7 reemplaza los selectores de horas por un botón único que consulta como máximo las 20 alertas Bancolombia más recientes recibidas durante la última hora. Se aplica en Movimientos, Configuración y Rafiki Empleados. No requiere SQL nuevo; se debe redesplegar `gmail-sync-now`.

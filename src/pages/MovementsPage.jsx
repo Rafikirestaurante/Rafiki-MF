@@ -73,7 +73,6 @@ export default function MovementsPage({ profile }) {
   const [dateFrom, setDateFrom] = useState(bogotaDay(-6));
   const [dateTo, setDateTo] = useState(bogotaDay());
   const [syncing, setSyncing] = useState(false);
-  const [quickHours, setQuickHours] = useState(2);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncTone, setSyncTone] = useState("info");
 
@@ -97,9 +96,9 @@ export default function MovementsPage({ profile }) {
     setSyncing(true);
     setSyncMessage("");
     try {
-      const data = await syncGmailQuick(quickHours);
+      const data = await syncGmailQuick();
       setSyncTone(data.errors_count || data.bancolombia_unidentified ? "warning" : "success");
-      setSyncMessage(`Búsqueda rápida de ${quickHours} horas: ${data.messages_scanned || data.messages_found || 0} alertas consultadas, ${data.movements_created || 0} movimientos nuevos, ${data.duplicates_ignored || 0} ya registrados y ${data.bancolombia_unidentified || 0} con formato no reconocido.`);
+      setSyncMessage(`Búsqueda rápida completada: ${data.messages_scanned || data.messages_found || 0} de hasta 20 alertas de Bancolombia revisadas durante la última hora, ${data.movements_created || 0} movimientos nuevos, ${data.duplicates_ignored || 0} ya registrados y ${data.bancolombia_unidentified || 0} con formato no reconocido.`);
       await load();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (syncError) {
@@ -157,14 +156,11 @@ export default function MovementsPage({ profile }) {
       <section className="quick-movement-sync-card">
         <div className="movement-sync-copy">
           <span className="eyebrow">Recomendado</span>
-          <strong>Sincronización rápida</strong>
-          <small>Busca únicamente alertas recientes de Bancolombia. Usa 2 horas normalmente, 6 horas como respaldo y 12 horas para una búsqueda más amplia.</small>
-        </div>
-        <div className="hour-selector" aria-label="Horas a consultar">
-          {[2, 6, 12].map((hours) => <button type="button" key={hours} className={quickHours === hours ? "active" : ""} onClick={() => setQuickHours(hours)} disabled={syncing}>{hours} h</button>)}
+          <strong>Búsqueda rápida</strong>
+          <small>Revisa como máximo las 20 alertas más recientes de Bancolombia recibidas durante la última hora.</small>
         </div>
         <button className="primary-button" onClick={synchronizeQuick} disabled={!isAdmin || syncing || loading}>
-          <Icon name="refresh" size={18} /> {syncing ? "Buscando..." : "Sincronización rápida"}
+          <Icon name="refresh" size={18} /> {syncing ? "Buscando..." : "Búsqueda rápida"}
         </button>
       </section>
 

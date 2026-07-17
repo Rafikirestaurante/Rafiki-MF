@@ -47,7 +47,6 @@ export default function EmployeePublicPage() {
   const [confirming, setConfirming] = useState(null);
   const [employeeName, setEmployeeName] = useState("");
   const [note, setNote] = useState("");
-  const [quickHours, setQuickHours] = useState(2);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [installed, setInstalled] = useState(() => window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true);
 
@@ -120,9 +119,9 @@ export default function EmployeePublicPage() {
     setAction("sync");
     setMessage("");
     try {
-      const data = await syncEmployeePublicMovements(session.access_token, quickHours);
+      const data = await syncEmployeePublicMovements(session.access_token);
       setTone(data.errors_count ? "warning" : "success");
-      setMessage(`Búsqueda rápida de ${quickHours} horas: ${data.bancolombia_emails || data.messages_scanned || 0} alerta(s) revisada(s), ${data.movements_created || 0} movimiento(s) nuevo(s) y ${data.duplicates_ignored || data.movement_duplicates || 0} ya registrado(s).`);
+      setMessage(`Búsqueda rápida completada: ${data.bancolombia_emails || data.messages_scanned || 0} de hasta 20 alerta(s) de Bancolombia revisada(s) durante la última hora, ${data.movements_created || 0} movimiento(s) nuevo(s) y ${data.duplicates_ignored || data.movement_duplicates || 0} ya registrado(s).`);
       await load(session, true);
     } catch (error) {
       setTone("danger");
@@ -206,18 +205,15 @@ export default function EmployeePublicPage() {
         </div>
 
         <section className="employee-quick-sync-card">
-          <div className="movement-sync-copy"><strong>Sincronización rápida</strong><small>Usa 2 horas normalmente, 6 horas como respaldo y 12 horas para una revisión más amplia.</small></div>
-          <div className="hour-selector" aria-label="Horas a consultar">
-            {[2, 6, 12].map((hours) => <button type="button" key={hours} className={quickHours === hours ? "active" : ""} onClick={() => setQuickHours(hours)} disabled={Boolean(action) || loading}>{hours} h</button>)}
-          </div>
-          <button className="primary-button" onClick={synchronize} disabled={Boolean(action) || loading}><Icon name="refresh" size={18} /> {action === "sync" ? "Buscando..." : "Sincronizar"}</button>
+          <div className="movement-sync-copy"><strong>Búsqueda rápida</strong><small>Revisa como máximo las 20 alertas más recientes de Bancolombia recibidas durante la última hora.</small></div>
+          <button className="primary-button" onClick={synchronize} disabled={Boolean(action) || loading}><Icon name="refresh" size={18} /> {action === "sync" ? "Buscando..." : "Búsqueda rápida"}</button>
         </section>
 
         {message ? <Alert tone={tone}>{message}</Alert> : null}
         {latest ? <div className="employee-latest-banner"><span>Último movimiento actualizado</span><strong>{formatMoment(latest.transaction_at)}</strong></div> : null}
 
         {loading ? <div className="employee-public-loading">Consultando movimientos...</div> : movements.length === 0 ? (
-          <section className="employee-empty"><Icon name="movements" size={32} /><h2>No hay movimientos disponibles</h2><p>Presiona Sincronizar para revisar las alertas recientes de Bancolombia.</p></section>
+          <section className="employee-empty"><Icon name="movements" size={32} /><h2>No hay movimientos disponibles</h2><p>Presiona Búsqueda rápida para revisar hasta 20 alertas de Bancolombia recibidas durante la última hora.</p></section>
         ) : (
           <section className="employee-movement-list">
             {movements.map((movement, index) => (
@@ -240,7 +236,7 @@ export default function EmployeePublicPage() {
             ))}
           </section>
         )}
-        <p className="employee-public-footer-note">La sincronización pública revisa únicamente alertas Bancolombia de las últimas 2, 6 o 12 horas y puede ejecutarse una vez por minuto.</p>
+        <p className="employee-public-footer-note">La búsqueda pública revisa como máximo 20 alertas Bancolombia de la última hora y puede ejecutarse una vez por minuto.</p>
       </section>
 
       {confirming ? (

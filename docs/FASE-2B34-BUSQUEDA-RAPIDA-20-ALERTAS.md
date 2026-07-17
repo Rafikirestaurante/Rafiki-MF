@@ -1,0 +1,19 @@
+# Fase 2B.3.4 — Búsqueda rápida de 20 alertas
+
+Versión: **1.2.7**
+
+## Cambio principal
+
+Movimientos, Configuración y la PWA **Rafiki Empleados** usan un único botón **Búsqueda rápida**.
+
+La operación:
+
+- consulta solamente `alertasynotificaciones@an.notificacionesbancolombia.com`;
+- limita la ventana a la última hora exacta;
+- procesa como máximo las 20 alertas más recientes;
+- mantiene el control de duplicados;
+- actualiza la lista al finalizar;
+- conserva la búsqueda histórica por fechas en el panel administrativo;
+- mantiene para empleados el límite de una solicitud por minuto.
+
+No requiere SQL nuevo. Debe redesplegarse `gmail-sync-now` y se recomienda redesplegar `employee-public-access`.

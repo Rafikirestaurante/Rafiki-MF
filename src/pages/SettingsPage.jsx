@@ -40,7 +40,6 @@ export default function SettingsPage({ profile }) {
   const [lastSync, setLastSync] = useState(null);
   const [diagnostics, setDiagnostics] = useState(null);
   const [communicationIssues, setCommunicationIssues] = useState([]);
-  const [quickHours, setQuickHours] = useState(2);
   const [employeeAccess, setEmployeeAccess] = useState({ configured: false, enabled: false, username: "empleados", password_configured: false, public_url: "" });
   const [employeeUsername, setEmployeeUsername] = useState("empleados");
   const [employeePassword, setEmployeePassword] = useState("");
@@ -203,9 +202,9 @@ export default function SettingsPage({ profile }) {
     setAction("quick-sync");
     setMessage("");
     try {
-      const data = await syncGmailQuick(quickHours);
+      const data = await syncGmailQuick();
       setTone(data.errors_count || data.bancolombia_unidentified ? "warning" : "success");
-      setMessage(`Sincronización rápida de ${quickHours} horas: ${data.messages_scanned || data.messages_found || 0} alertas consultadas, ${data.movements_created || 0} movimientos nuevos, ${data.duplicates_ignored || 0} ya registrados y ${data.bancolombia_unidentified || 0} con formato no reconocido.`);
+      setMessage(`Búsqueda rápida completada: ${data.messages_scanned || data.messages_found || 0} de hasta 20 alertas de Bancolombia revisadas durante la última hora, ${data.movements_created || 0} movimientos nuevos, ${data.duplicates_ignored || 0} ya registrados y ${data.bancolombia_unidentified || 0} con formato no reconocido.`);
       await load();
     } catch (error) {
       setTone("danger");
@@ -389,18 +388,15 @@ export default function SettingsPage({ profile }) {
 
       <section className="panel-card sync-card">
         <div className="panel-heading">
-          <div><span className="eyebrow">Fase 2B.3.3</span><h2>Sincronización y extractor Bancolombia</h2></div>
+          <div><span className="eyebrow">Fase 2B.3.4</span><h2>Búsqueda rápida y extractor Bancolombia</h2></div>
           <Badge tone={lastSync?.status === "success" ? "success" : lastSync?.status === "error" ? "danger" : lastSync ? "warning" : "neutral"}>
             {lastSync ? (lastSync.status === "success" ? "Completada" : lastSync.status === "partial" ? "Con novedades" : lastSync.status === "running" ? "En curso" : "Fallida") : "Sin ejecuciones"}
           </Badge>
         </div>
         <p className="panel-description">Usa la búsqueda rápida para revisar solo las alertas recientes de Bancolombia. La búsqueda por fechas queda disponible para recuperaciones o consultas históricas.</p>
         <div className="quick-sync-panel">
-          <div><span className="eyebrow">Recomendado</span><strong>Sincronización rápida</strong><small>Consulta únicamente alertas de Bancolombia recibidas durante las últimas horas.</small></div>
-          <div className="hour-selector" aria-label="Horas a revisar">
-            {[2, 6, 12].map((hours) => <button type="button" key={hours} className={quickHours === hours ? "active" : ""} onClick={() => setQuickHours(hours)} disabled={Boolean(action)}>{hours} h</button>)}
-          </div>
-          <button className="primary-button" onClick={synchronizeQuick} disabled={!isAdmin || !canAttemptGmail || Boolean(action)}><Icon name="refresh" size={18} /> {action === "quick-sync" ? "Buscando..." : "Sincronización rápida"}</button>
+          <div><span className="eyebrow">Recomendado</span><strong>Búsqueda rápida</strong><small>Revisa como máximo las 20 alertas más recientes de Bancolombia recibidas durante la última hora.</small></div>
+          <button className="primary-button" onClick={synchronizeQuick} disabled={!isAdmin || !canAttemptGmail || Boolean(action)}><Icon name="refresh" size={18} /> {action === "quick-sync" ? "Buscando..." : "Búsqueda rápida"}</button>
         </div>
         <details className="range-sync-details">
           <summary>Sincronización por rango de fechas</summary>
@@ -429,7 +425,7 @@ export default function SettingsPage({ profile }) {
           <div><span className="eyebrow">Acceso restringido</span><h2>Enlace público para empleados</h2></div>
           <Badge tone={employeeEnabled ? "success" : "neutral"}>{employeeEnabled ? "Activo" : "Desactivado"}</Badge>
         </div>
-        <p className="panel-description">Permite consultar solamente los cinco movimientos más recientes, sincronizar alertas Bancolombia de las últimas 2, 6 o 12 horas, confirmar ingresos e instalar una PWA independiente para empleados.</p>
+        <p className="panel-description">Permite consultar solamente los cinco movimientos más recientes, buscar hasta 20 alertas Bancolombia de la última hora, confirmar ingresos e instalar una PWA independiente para empleados.</p>
         {employeeMessage ? <Alert tone={employeeTone}>{employeeMessage}</Alert> : null}
         <div className="employee-access-form">
           <label><span>Nombre de acceso</span><input value={employeeUsername} maxLength={40} onChange={(event) => setEmployeeUsername(event.target.value.toLowerCase())} placeholder="empleados" disabled={!isAdmin || Boolean(employeeAction)} /></label>
@@ -466,8 +462,8 @@ export default function SettingsPage({ profile }) {
       ) : null}
 
       <section className="panel-card phase-card">
-        <div><span className="eyebrow">Versión 1.2.6</span><h2>Fase 2B.3.3 — PWA y sincronización rápida para empleados</h2><p>La vista pública incorpora búsqueda rápida de 2, 6 y 12 horas y puede instalarse como “Rafiki Empleados”, separada visualmente del panel administrativo.</p></div>
-        <Badge tone="blue">Fase 2B.3.3</Badge>
+        <div><span className="eyebrow">Versión 1.2.7</span><h2>Fase 2B.3.4 — Búsqueda rápida de 20 alertas</h2><p>Movimientos y Rafiki Empleados revisan como máximo las 20 alertas Bancolombia más recientes recibidas durante la última hora.</p></div>
+        <Badge tone="blue">Fase 2B.3.4</Badge>
       </section>
     </>
   );
