@@ -72,3 +72,8 @@ Nunca subas al repositorio:
 - `package-lock.json`
 
 Los secretos de Gmail deben configurarse exclusivamente en Supabase Edge Functions.
+
+
+## Fase 2B.2 — Vista pública para empleados
+
+La ruta `/empleados` permite consultar solamente los cinco movimientos más recientes, sincronizar alertas recientes de Bancolombia y confirmar pagos recibidos. El Administrador configura el nombre y la contraseña desde Configuración. Ejecutar previamente `supabase/2026-07-17-fase2b2-acceso-publico-empleados.sql`.
