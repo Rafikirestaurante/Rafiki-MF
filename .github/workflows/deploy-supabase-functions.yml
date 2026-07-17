@@ -59,8 +59,17 @@ jobs:
       - name: Deploy gmail-test-connection
         run: supabase functions deploy gmail-test-connection --project-ref "$SUPABASE_PROJECT_REF"
 
+      - name: Deploy gmail-diagnostics
+        run: supabase functions deploy gmail-diagnostics --project-ref "$SUPABASE_PROJECT_REF"
+
       - name: Deploy gmail-disconnect
         run: supabase functions deploy gmail-disconnect --project-ref "$SUPABASE_PROJECT_REF"
 
       - name: Deploy gmail-sync-now
         run: supabase functions deploy gmail-sync-now --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Deploy employee-access-admin
+        run: supabase functions deploy employee-access-admin --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Deploy employee-public-access
+        run: supabase functions deploy employee-public-access --project-ref "$SUPABASE_PROJECT_REF"
