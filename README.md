@@ -77,3 +77,14 @@ Los secretos de Gmail deben configurarse exclusivamente en Supabase Edge Functio
 ## Fase 2B.2 — Vista pública para empleados
 
 La ruta `/empleados` permite consultar solamente los cinco movimientos más recientes, sincronizar alertas recientes de Bancolombia y confirmar pagos recibidos. El Administrador configura el nombre y la contraseña desde Configuración. Ejecutar previamente `supabase/2026-07-17-fase2b2-acceso-publico-empleados.sql`.
+
+## Fase 2B.3 — Diagnóstico Gmail y sincronización rápida
+
+- Verificador activo de conexión Gmail con resultados por etapa.
+- Visualización del último error y errores técnicos recientes.
+- Identificación de alertas Bancolombia detectadas pero no convertidas por formato no reconocido.
+- Sincronización rápida de las últimas 2, 6 o 12 horas; 2 horas es el valor predeterminado.
+- La búsqueda rápida consulta exclusivamente el remitente autorizado de Bancolombia y procesa máximo 100 mensajes.
+- La sincronización histórica por rango de fechas continúa disponible.
+- Nueva Edge Function: `gmail-diagnostics`.
+- No requiere una migración SQL adicional.

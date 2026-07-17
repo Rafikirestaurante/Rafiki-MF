@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Icon from "../components/Icons.jsx";
 import { Alert, Badge, EmptyState, PageHeader } from "../components/Ui.jsx";
-import { syncGmailNow } from "../services/gmailIntegrationService.js";
+import { syncGmailNow, syncGmailQuick } from "../services/gmailIntegrationService.js";
 import { getFinancialMovements } from "../services/movementService.js";
 
 const typeLabels = {
@@ -101,6 +101,7 @@ export default function MovementsPage({ profile }) {
   const [dateFrom, setDateFrom] = useState(bogotaDay(-6));
   const [dateTo, setDateTo] = useState(bogotaDay());
   const [syncing, setSyncing] = useState(false);
+  const [quickHours, setQuickHours] = useState(2);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncTone, setSyncTone] = useState("info");
 
@@ -120,12 +121,29 @@ export default function MovementsPage({ profile }) {
 
   useEffect(() => { load(); }, []);
 
+  async function synchronizeQuick() {
+    setSyncing(true);
+    setSyncMessage("");
+    try {
+      const data = await syncGmailQuick(quickHours);
+      setSyncTone(data.errors_count || data.bancolombia_unidentified ? "warning" : "success");
+      setSyncMessage(`Búsqueda rápida de ${quickHours} horas: ${data.messages_scanned || data.messages_found || 0} alertas revisadas, ${data.movements_created || 0} movimientos nuevos, ${data.duplicates_ignored || 0} ya registrados y ${data.bancolombia_unidentified || 0} con formato no reconocido.`);
+      await load();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (syncError) {
+      setSyncTone("danger");
+      setSyncMessage(syncError.message || "No se pudo ejecutar la sincronización rápida.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   async function synchronize() {
     setSyncing(true);
     setSyncMessage("");
     try {
       const data = await syncGmailNow(dateFrom, dateTo);
-      setSyncTone(data.errors_count ? "warning" : "success");
+      setSyncTone(data.errors_count || data.bancolombia_unidentified ? "warning" : "success");
       setSyncMessage(`Sincronización terminada: ${data.messages_found || 0} correos revisados, ${data.bancolombia_emails || 0} de Bancolombia y ${data.movements_created || 0} movimientos nuevos.`);
       await load();
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -165,18 +183,34 @@ export default function MovementsPage({ profile }) {
       {error ? <Alert tone="danger">{error}</Alert> : null}
       {syncMessage ? <Alert tone={syncTone}>{syncMessage}</Alert> : null}
 
-      <section className="movement-sync-card">
+      <section className="quick-movement-sync-card">
         <div className="movement-sync-copy">
-          <span className="eyebrow">Acceso directo</span>
-          <strong>Sincronizar Gmail</strong>
-          <small>Busca movimientos de Bancolombia dentro del rango seleccionado.</small>
+          <span className="eyebrow">Recomendado</span>
+          <strong>Sincronización rápida</strong>
+          <small>Busca únicamente alertas recientes de Bancolombia. Usa 2 horas normalmente, 6 horas como respaldo y 12 horas para una revisión más amplia.</small>
         </div>
-        <label><span>Desde</span><input type="date" value={dateFrom} max={dateTo} onChange={(event) => setDateFrom(event.target.value)} /></label>
-        <label><span>Hasta</span><input type="date" value={dateTo} min={dateFrom} max={bogotaDay()} onChange={(event) => setDateTo(event.target.value)} /></label>
-        <button className="primary-button" onClick={synchronize} disabled={!isAdmin || syncing || loading || !dateFrom || !dateTo}>
-          <Icon name="refresh" size={18} /> {syncing ? "Sincronizando..." : "Sincronizar ahora"}
+        <div className="hour-selector" aria-label="Horas a revisar">
+          {[2, 6, 12].map((hours) => <button type="button" key={hours} className={quickHours === hours ? "active" : ""} onClick={() => setQuickHours(hours)} disabled={syncing}>{hours} h</button>)}
+        </div>
+        <button className="primary-button" onClick={synchronizeQuick} disabled={!isAdmin || syncing || loading}>
+          <Icon name="refresh" size={18} /> {syncing ? "Buscando..." : "Sincronización rápida"}
         </button>
       </section>
+
+      <details className="movement-range-sync">
+        <summary>Sincronización por rango de fechas</summary>
+        <section className="movement-sync-card">
+          <div className="movement-sync-copy">
+            <strong>Revisión histórica</strong>
+            <small>Úsala para buscar movimientos de días anteriores.</small>
+          </div>
+          <label><span>Desde</span><input type="date" value={dateFrom} max={dateTo} onChange={(event) => setDateFrom(event.target.value)} /></label>
+          <label><span>Hasta</span><input type="date" value={dateTo} min={dateFrom} max={bogotaDay()} onChange={(event) => setDateTo(event.target.value)} /></label>
+          <button className="primary-button" onClick={synchronize} disabled={!isAdmin || syncing || loading || !dateFrom || !dateTo}>
+            <Icon name="refresh" size={18} /> {syncing ? "Sincronizando..." : "Sincronizar rango"}
+          </button>
+        </section>
+      </details>
       {!isAdmin ? <Alert tone="warning">Solo el Administrador puede iniciar la sincronización. Los Revisores sí pueden consultar los movimientos.</Alert> : null}
 
       {latestMovement ? (

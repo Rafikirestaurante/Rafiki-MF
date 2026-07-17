@@ -11,6 +11,7 @@ const required = [
   "supabase/functions/gmail-oauth-callback/index.ts",
   "supabase/functions/gmail-connection-status/index.ts",
   "supabase/functions/gmail-test-connection/index.ts",
+  "supabase/functions/gmail-diagnostics/index.ts",
   "supabase/functions/gmail-disconnect/index.ts",
   "supabase/functions/gmail-sync-now/index.ts",
   "supabase/2026-07-16-fase2a-motor-sincronizacion.sql",
@@ -21,6 +22,7 @@ const required = [
   "docs/FASE-2B-BANCOLOMBIA.md",
   "docs/FASE-2B1-FECHA-HORA-MOVIMIENTOS.md",
   "docs/FASE-2B2-ACCESO-PUBLICO-EMPLEADOS.md",
+  "docs/FASE-2B3-DIAGNOSTICO-SINCRONIZACION-RAPIDA.md",
   "docs/INSTALACION-GMAIL-SUPABASE.md",
   "src/pages/EmployeePublicPage.jsx",
   "src/services/employeeAccessService.js",
@@ -45,6 +47,6 @@ for (const token of expectations) {
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 if (packageJson.name !== "rafiki-movimientos-facturas") throw new Error("Nombre de proyecto inesperado.");
 
-if (packageJson.version !== "1.2.2") throw new Error("Versión esperada: 1.2.2.");
+if (packageJson.version !== "1.2.3") throw new Error("Versión esperada: 1.2.3.");
 
-console.log("Validación correcta: Rafiki MF Fase 2B.2 con acceso público restringido para empleados.");
+console.log("Validación correcta: Rafiki MF Fase 2B.3 con diagnóstico Gmail y sincronización rápida.");

@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Icon from "../components/Icons.jsx";
 import { Alert, Badge, PageHeader } from "../components/Ui.jsx";
 import {
+  diagnoseGmailConnection,
   disconnectGmail,
   getGmailConnectionStatus,
   startGmailConnection,
-  testGmailConnection,
   syncGmailNow,
+  syncGmailQuick,
   getRecentSyncRuns
 } from "../services/gmailIntegrationService.js";
 import { getEmployeeAccessSettings, saveEmployeeAccessSettings } from "../services/employeeAccessService.js";
@@ -36,6 +37,8 @@ export default function SettingsPage({ profile }) {
   const [dateFrom, setDateFrom] = useState(sevenDaysAgo);
   const [dateTo, setDateTo] = useState(today);
   const [lastSync, setLastSync] = useState(null);
+  const [diagnostics, setDiagnostics] = useState(null);
+  const [quickHours, setQuickHours] = useState(2);
   const [employeeAccess, setEmployeeAccess] = useState({ configured: false, enabled: false, username: "empleados", password_configured: false, public_url: "" });
   const [employeeUsername, setEmployeeUsername] = useState("empleados");
   const [employeePassword, setEmployeePassword] = useState("");
@@ -47,6 +50,7 @@ export default function SettingsPage({ profile }) {
   const isAdmin = profile?.role === "admin";
   const connection = status.connection;
   const connected = Boolean(status.configured && connection?.status === "connected");
+  const canAttemptGmail = Boolean(status.configured && connection?.status !== "disconnected");
   const visual = useMemo(() => {
     if (connected) return { label: "Conectado", tone: "success" };
     if (connection?.status === "error") return { label: "Requiere atención", tone: "danger" };
@@ -115,25 +119,43 @@ export default function SettingsPage({ profile }) {
     setAction("test");
     setMessage("");
     try {
-      const data = await testGmailConnection();
-      setTone("success");
-      setMessage(`Conexión confirmada con ${data.google_email || "Gmail"}.`);
+      const data = await diagnoseGmailConnection();
+      setDiagnostics(data);
+      setTone(data.ok ? "success" : "danger");
+      setMessage(data.ok
+        ? `Conexión verificada correctamente con ${data.google_email || "Gmail"}.`
+        : data.summary_error || "El verificador encontró problemas en la conexión.");
       await load();
     } catch (error) {
       setTone("danger");
-      setMessage(error.message || "No se pudo confirmar la conexión.");
+      setMessage(error.message || "No se pudo ejecutar el verificador de conexión.");
     } finally {
       setAction("");
     }
   }
 
+  async function synchronizeQuick() {
+    setAction("quick-sync");
+    setMessage("");
+    try {
+      const data = await syncGmailQuick(quickHours);
+      setTone(data.errors_count || data.bancolombia_unidentified ? "warning" : "success");
+      setMessage(`Sincronización rápida de ${quickHours} horas: ${data.messages_scanned || data.messages_found || 0} alertas revisadas, ${data.movements_created || 0} movimientos nuevos, ${data.duplicates_ignored || 0} ya registrados y ${data.bancolombia_unidentified || 0} con formato no reconocido.`);
+      await load();
+    } catch (error) {
+      setTone("danger");
+      setMessage(error.message || "No se pudo ejecutar la sincronización rápida.");
+    } finally {
+      setAction("");
+    }
+  }
 
   async function synchronize() {
     setAction("sync");
     setMessage("");
     try {
       const data = await syncGmailNow(dateFrom, dateTo);
-      setTone(data.errors_count ? "warning" : "success");
+      setTone(data.errors_count || data.bancolombia_unidentified ? "warning" : "success");
       setMessage(`Sincronización terminada: ${data.messages_found || 0} correos revisados, ${data.bancolombia_emails || 0} de Bancolombia y ${data.movements_created || 0} movimientos nuevos.`);
       await load();
     } catch (error) {
@@ -212,19 +234,59 @@ export default function SettingsPage({ profile }) {
             <div><span>Permiso</span><strong>Solo lectura</strong></div>
           </div>
 
-          {connection?.last_error ? <Alert tone="warning"><strong>Última novedad:</strong> {connection.last_error}</Alert> : null}
+          {connection?.last_error ? <Alert tone="danger"><strong>Último error registrado:</strong> {connection.last_error}</Alert> : null}
+          {!diagnostics && connection?.status === "error" && (status.recent_errors || []).length ? (
+            <details className="technical-errors connection-errors-visible">
+              <summary>Ver errores recientes ({status.recent_errors.length})</summary>
+              <div>{status.recent_errors.map((item) => (
+                <article key={item.id}><div><strong>{item.source || "gmail"} · {item.stage}</strong><span>{formatDate(item.created_at)}</span></div><p>{item.error_message}</p>{item.sync_run_id ? <small>Ejecución #{item.sync_run_id}</small> : null}</article>
+              ))}</div>
+            </details>
+          ) : null}
 
           <div className="button-row">
-            {!connected ? (
+            {!canAttemptGmail ? (
               <button className="primary-button" onClick={connect} disabled={!isAdmin || loading || Boolean(action)}><Icon name="mail" size={18} /> {action === "connect" ? "Abriendo Google..." : "Conectar Gmail"}</button>
             ) : (
               <>
-                <button className="primary-button" onClick={test} disabled={!isAdmin || Boolean(action)}><Icon name="refresh" size={18} /> {action === "test" ? "Probando..." : "Probar conexión"}</button>
+                <button className="primary-button" onClick={test} disabled={!isAdmin || Boolean(action)}><Icon name="refresh" size={18} /> {action === "test" ? "Verificando..." : "Verificar conexión"}</button>
+                {connection?.status === "error" ? <button className="secondary-button" onClick={connect} disabled={!isAdmin || Boolean(action)}><Icon name="mail" size={18} /> Reconectar Gmail</button> : null}
                 <button className="danger-button" onClick={() => setConfirmDisconnect(true)} disabled={!isAdmin || Boolean(action)}>Desconectar</button>
               </>
             )}
             <button className="secondary-button" onClick={load} disabled={!isAdmin || loading || Boolean(action)}>Actualizar estado</button>
           </div>
+
+          {diagnostics ? (
+            <div className="gmail-diagnostics">
+              <div className="diagnostic-heading"><strong>Resultado del verificador</strong><span>{formatDate(diagnostics.checked_at)}</span></div>
+              <div className="diagnostic-checks">
+                {(diagnostics.checks || []).map((check) => (
+                  <div className={check.ok ? "diagnostic-ok" : "diagnostic-error"} key={check.key}>
+                    <Icon name={check.ok ? "check" : "alert"} size={17} />
+                    <div><strong>{check.label}</strong><span>{check.message}</span>{check.error ? <small>{check.error}</small> : null}</div>
+                  </div>
+                ))}
+              </div>
+              {(diagnostics.recent_errors || []).length ? (
+                <details className="technical-errors">
+                  <summary>Ver últimos errores técnicos ({diagnostics.recent_errors.length})</summary>
+                  <div>{diagnostics.recent_errors.map((item) => (
+                    <article key={item.id}><div><strong>{item.source || "gmail"} · {item.stage}</strong><span>{formatDate(item.created_at)}</span></div><p>{item.error_message}</p>{item.sync_run_id ? <small>Ejecución #{item.sync_run_id}</small> : null}</article>
+                  ))}</div>
+                </details>
+              ) : <small className="diagnostic-empty">No hay errores técnicos recientes registrados.</small>}
+              {(diagnostics.unrecognized_alerts || []).length ? (
+                <details className="unrecognized-alerts">
+                  <summary>Alertas Bancolombia detectadas sin registrar ({diagnostics.unrecognized_alerts.length})</summary>
+                  <p>Estos correos sí llegaron y fueron encontrados, pero su formato no coincidió con el extractor actual.</p>
+                  <div>{diagnostics.unrecognized_alerts.map((item) => (
+                    <article key={item.id}><div><strong>{item.subject || "Sin asunto"}</strong><span>{formatDate(item.received_at)}</span></div><p>{item.snippet || "El correo no incluyó un fragmento visible."}</p></article>
+                  ))}</div>
+                </details>
+              ) : null}
+            </div>
+          ) : null}
         </article>
 
         <article className="panel-card">
@@ -241,19 +303,30 @@ export default function SettingsPage({ profile }) {
 
       <section className="panel-card sync-card">
         <div className="panel-heading">
-          <div><span className="eyebrow">Fase 2B.1</span><h2>Sincronización y extractor Bancolombia</h2></div>
+          <div><span className="eyebrow">Fase 2B.3</span><h2>Sincronización y extractor Bancolombia</h2></div>
           <Badge tone={lastSync?.status === "success" ? "success" : lastSync?.status === "error" ? "danger" : lastSync ? "warning" : "neutral"}>
             {lastSync ? (lastSync.status === "success" ? "Completada" : lastSync.status === "partial" ? "Con novedades" : lastSync.status === "running" ? "En curso" : "Fallida") : "Sin ejecuciones"}
           </Badge>
         </div>
-        <p className="panel-description">Consulta correos por rango de fechas. Las alertas válidas de Bancolombia crean movimientos informativos; los demás correos permanecen como candidatos para las siguientes etapas.</p>
+        <p className="panel-description">Usa la búsqueda rápida para revisar solo las alertas recientes de Bancolombia. La búsqueda por fechas queda disponible para recuperaciones o revisiones históricas.</p>
+        <div className="quick-sync-panel">
+          <div><span className="eyebrow">Recomendado</span><strong>Sincronización rápida</strong><small>Consulta únicamente alertas de Bancolombia recibidas durante las últimas horas.</small></div>
+          <div className="hour-selector" aria-label="Horas a revisar">
+            {[2, 6, 12].map((hours) => <button type="button" key={hours} className={quickHours === hours ? "active" : ""} onClick={() => setQuickHours(hours)} disabled={Boolean(action)}>{hours} h</button>)}
+          </div>
+          <button className="primary-button" onClick={synchronizeQuick} disabled={!isAdmin || !canAttemptGmail || Boolean(action)}><Icon name="refresh" size={18} /> {action === "quick-sync" ? "Buscando..." : "Sincronización rápida"}</button>
+        </div>
+        <details className="range-sync-details">
+          <summary>Sincronización por rango de fechas</summary>
+          <p>Úsala cuando necesites revisar días anteriores o recuperar correos que no aparecieron en la búsqueda rápida.</p>
         <div className="sync-controls">
           <label><span>Desde</span><input type="date" value={dateFrom} max={dateTo} onChange={(event) => setDateFrom(event.target.value)} /></label>
           <label><span>Hasta</span><input type="date" value={dateTo} min={dateFrom} max={today} onChange={(event) => setDateTo(event.target.value)} /></label>
-          <button className="primary-button" onClick={synchronize} disabled={!isAdmin || !connected || Boolean(action) || !dateFrom || !dateTo}>
+          <button className="primary-button" onClick={synchronize} disabled={!isAdmin || !canAttemptGmail || Boolean(action) || !dateFrom || !dateTo}>
             <Icon name="refresh" size={18} /> {action === "sync" ? "Sincronizando..." : "Sincronizar ahora"}
           </button>
         </div>
+        </details>
         {lastSync ? <div className="sync-summary">
           <div><span>Última ejecución</span><strong>{formatDate(lastSync.started_at)}</strong></div>
           <div><span>Correos revisados</span><strong>{lastSync.messages_scanned || 0}</strong></div>
@@ -262,7 +335,7 @@ export default function SettingsPage({ profile }) {
           <div><span>Ya registrados</span><strong>{lastSync.duplicates_ignored || 0}</strong></div>
           <div><span>Errores</span><strong>{lastSync.errors_count || 0}</strong></div>
         </div> : null}
-        {!connected ? <Alert tone="warning">Conecta y prueba Gmail antes de ejecutar una sincronización.</Alert> : null}
+        {!canAttemptGmail ? <Alert tone="warning">Conecta Gmail antes de ejecutar una sincronización.</Alert> : null}
       </section>
 
       <section className="panel-card employee-access-settings-card">
@@ -307,8 +380,8 @@ export default function SettingsPage({ profile }) {
       ) : null}
 
       <section className="panel-card phase-card">
-        <div><span className="eyebrow">Versión 1.2.2</span><h2>Fase 2B.2 — Acceso público para empleados</h2><p>Vista limitada con credenciales compartidas, últimos cinco movimientos, sincronización restringida y confirmación de pagos recibidos.</p></div>
-        <Badge tone="blue">Fase 2B.2</Badge>
+        <div><span className="eyebrow">Versión 1.2.3</span><h2>Fase 2B.3 — Diagnóstico y sincronización rápida</h2><p>Verificador detallado de Gmail y búsqueda rápida de alertas Bancolombia durante las últimas 2, 6 o 12 horas.</p></div>
+        <Badge tone="blue">Fase 2B.3</Badge>
       </section>
     </>
   );

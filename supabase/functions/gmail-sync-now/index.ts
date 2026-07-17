@@ -136,10 +136,18 @@ Deno.serve(async (request: Request) => {
     const client = operationClient;
     const body = await request.json().catch(() => ({}));
     const now = new Date();
+    const requestedMode = String(body.mode || "range").toLowerCase();
+    const quickHours = [2, 6, 12].includes(Number(body.hours)) ? Number(body.hours) : 2;
+    const syncMode = publicEmployeeAccess ? "public" : requestedMode === "quick" ? "quick" : "range";
+    const quickStart = new Date(now.getTime() - quickHours * 60 * 60 * 1000);
     const publicFrom = new Date(now.getTime() - 2 * 86400000);
     const defaultFrom = new Date(now.getTime() - 6 * 86400000);
-    const dateFrom = publicEmployeeAccess ? isoDay(publicFrom.toISOString().slice(0, 10), publicFrom) : isoDay(body.date_from, defaultFrom);
-    const dateTo = publicEmployeeAccess ? isoDay(now.toISOString().slice(0, 10), now) : isoDay(body.date_to, now);
+    const dateFrom = publicEmployeeAccess
+      ? isoDay(publicFrom.toISOString().slice(0, 10), publicFrom)
+      : syncMode === "quick"
+        ? isoDay(quickStart.toISOString().slice(0, 10), quickStart)
+        : isoDay(body.date_from, defaultFrom);
+    const dateTo = publicEmployeeAccess || syncMode === "quick" ? isoDay(now.toISOString().slice(0, 10), now) : isoDay(body.date_to, now);
     if (dateFrom > dateTo) throw new Error("La fecha inicial no puede ser posterior a la fecha final.");
 
     const staleLimit = new Date(Date.now() - 30 * 60 * 1000).toISOString();
@@ -149,7 +157,16 @@ Deno.serve(async (request: Request) => {
 
     const { data: run, error: runError } = await client.from("gmail_sync_runs").insert({
       trigger_type: "manual", status: "running", requested_by: actorUserId,
-      detail: { phase: publicEmployeeAccess ? "2B.2-public" : "2B", date_from: dateFrom, date_to: dateTo, requested_by_email: actorEmail, public_employee_access: publicEmployeeAccess }
+      detail: {
+        phase: publicEmployeeAccess ? "2B.2-public" : "2B.3",
+        mode: syncMode,
+        quick_hours: syncMode === "quick" ? quickHours : null,
+        start_at: syncMode === "quick" ? quickStart.toISOString() : null,
+        date_from: dateFrom,
+        date_to: dateTo,
+        requested_by_email: actorEmail,
+        public_employee_access: publicEmployeeAccess
+      }
     }).select("id").single();
     if (runError) throw new Error(`No se pudo registrar el inicio: ${runError.message}`);
     syncRunId = Number(run.id);
@@ -158,7 +175,9 @@ Deno.serve(async (request: Request) => {
       .select("google_email,refresh_token_ciphertext,refresh_token_iv,status")
       .eq("connection_key", "principal").maybeSingle();
     if (connectionError) throw new Error(`No se pudo consultar Gmail: ${connectionError.message}`);
-    if (!connection || connection.status !== "connected" || !connection.refresh_token_ciphertext || !connection.refresh_token_iv) throw new Error("Gmail no está conectado correctamente.");
+    if (!connection || connection.status === "disconnected" || !connection.refresh_token_ciphertext || !connection.refresh_token_iv) {
+      throw new Error("Gmail no tiene una conexión reutilizable. Ejecuta el verificador y, si es necesario, conecta la cuenta nuevamente.");
+    }
 
     const refreshToken = await decryptSecret(connection.refresh_token_ciphertext, connection.refresh_token_iv);
     const token = await refreshGoogleAccessToken(refreshToken);
@@ -166,10 +185,14 @@ Deno.serve(async (request: Request) => {
     const endExclusive = new Date(`${dateTo}T00:00:00-05:00`);
     endExclusive.setDate(endExclusive.getDate() + 1);
     const before = endExclusive.toISOString().slice(0, 10).replaceAll("-", "/");
+    const senderFilter = "from:alertasynotificaciones@an.notificacionesbancolombia.com";
     const queryText = publicEmployeeAccess
-      ? `from:alertasynotificaciones@an.notificacionesbancolombia.com after:${after} before:${before}`
-      : `after:${after} before:${before}`;
+      ? `${senderFilter} after:${after} before:${before}`
+      : syncMode === "quick"
+        ? `${senderFilter} after:${Math.floor(quickStart.getTime() / 1000)}`
+        : `after:${after} before:${before}`;
     const query = encodeURIComponent(queryText);
+    const messageLimit = syncMode === "quick" ? 100 : publicEmployeeAccess ? 150 : 500;
 
     let pageToken = "";
     const refs: Array<{ id: string; threadId?: string }> = [];
@@ -179,9 +202,11 @@ Deno.serve(async (request: Request) => {
       const page = await gmailJson<GmailListResponse>(url.toString(), token.access_token);
       refs.push(...(page.messages || []));
       pageToken = page.nextPageToken || "";
-      if (refs.length >= 500) break;
+      if (refs.length >= messageLimit) break;
     } while (pageToken);
+    if (refs.length > messageLimit) refs.splice(messageLimit);
 
+    let messagesScanned = 0;
     let candidatesCreated = 0;
     let candidateDuplicates = 0;
     let errors = 0;
@@ -198,8 +223,16 @@ Deno.serve(async (request: Request) => {
           token.access_token
         );
         const receivedAt = message.internalDate ? new Date(Number(message.internalDate)).toISOString() : null;
+        if (syncMode === "quick" && receivedAt && new Date(receivedAt).getTime() < quickStart.getTime()) continue;
+        messagesScanned += 1;
         const fromHeader = header(message, "From");
-        const baseMetadata = { date_header: header(message, "Date"), sender_email: senderEmail(fromHeader), phase_last_seen: "2B" };
+        const baseMetadata = {
+          date_header: header(message, "Date"),
+          sender_email: senderEmail(fromHeader),
+          phase_last_seen: "2B.3",
+          sync_mode: syncMode,
+          quick_hours: syncMode === "quick" ? quickHours : null
+        };
         const candidateRow = {
           gmail_message_id: message.id,
           gmail_thread_id: message.threadId || ref.threadId || null,
@@ -354,7 +387,7 @@ Deno.serve(async (request: Request) => {
           source: "gmail",
           stage: "metadata",
           error_message: errorMessage(itemError),
-          technical_detail: { phase: "2B" }
+          technical_detail: { phase: "2B.3" }
         });
       }
     }
@@ -362,7 +395,10 @@ Deno.serve(async (request: Request) => {
     const status = errors ? (candidatesCreated || candidateDuplicates ? "partial" : "error") : "success";
     const finishedAt = new Date().toISOString();
     const detail = {
-      phase: publicEmployeeAccess ? "2B.2-public" : "2B",
+      phase: publicEmployeeAccess ? "2B.2-public" : "2B.3",
+      mode: syncMode,
+      quick_hours: syncMode === "quick" ? quickHours : null,
+      start_at: syncMode === "quick" ? quickStart.toISOString() : null,
       date_from: dateFrom,
       date_to: dateTo,
       messages_found: refs.length,
@@ -374,18 +410,23 @@ Deno.serve(async (request: Request) => {
       possible_duplicates: possibleDuplicates,
       bancolombia_unidentified: bancolombiaUnidentified,
       extractor_version: BANCOLOMBIA_EXTRACTOR_VERSION,
-      limited_to: 500
+      limited_to: messageLimit
     };
     await client.from("gmail_sync_runs").update({
       status,
       finished_at: finishedAt,
-      messages_scanned: refs.length,
+      messages_scanned: messagesScanned,
       movements_created: movementsCreated,
       duplicates_ignored: candidateDuplicates + movementDuplicates,
       errors_count: errors,
       detail
     }).eq("id", syncRunId);
-    await client.from("gmail_connections").update({ last_sync_at: finishedAt, last_error: errors ? `${errors} correo(s) presentaron errores.` : null }).eq("connection_key", "principal");
+    await client.from("gmail_connections").update({
+      status: "connected",
+      last_verified_at: finishedAt,
+      last_sync_at: finishedAt,
+      last_error: errors ? `${errors} correo(s) presentaron errores de lectura. Consulta el diagnóstico para ver el detalle.` : null
+    }).eq("connection_key", "principal");
     await client.from("gmail_integration_audit").insert({
       event_type: publicEmployeeAccess ? "employee_public_sync" : "manual_sync",
       user_id: actorUserId,
@@ -397,10 +438,13 @@ Deno.serve(async (request: Request) => {
     return jsonResponse(request, {
       sync_run_id: syncRunId,
       status,
+      mode: syncMode,
+      quick_hours: syncMode === "quick" ? quickHours : null,
+      start_at: syncMode === "quick" ? quickStart.toISOString() : null,
       date_from: dateFrom,
       date_to: dateTo,
       messages_found: refs.length,
-      messages_scanned: refs.length,
+      messages_scanned: messagesScanned,
       candidates_created: candidatesCreated,
       candidate_duplicates: candidateDuplicates,
       bancolombia_emails: bancolombiaEmails,
@@ -419,15 +463,17 @@ Deno.serve(async (request: Request) => {
           status: "error",
           finished_at: new Date().toISOString(),
           errors_count: 1,
-          detail: { phase: "2B", fatal_error: errorMessage(error), extractor_version: BANCOLOMBIA_EXTRACTOR_VERSION }
+          detail: { phase: "2B.3", fatal_error: errorMessage(error), extractor_version: BANCOLOMBIA_EXTRACTOR_VERSION }
         }).eq("id", syncRunId);
+        const fatalDetail = errorMessage(error);
         await client.from("processing_errors").insert({
           sync_run_id: syncRunId,
           source: "gmail",
           stage: "sync",
-          error_message: errorMessage(error),
-          technical_detail: { phase: "2B", fatal: true }
+          error_message: fatalDetail,
+          technical_detail: { phase: "2B.3", fatal: true }
         });
+        await client.from("gmail_connections").update({ status: "error", last_error: fatalDetail }).eq("connection_key", "principal");
       } catch { /* conservar el error original */ }
     }
     return jsonResponse(request, { error: errorMessage(error), sync_run_id: syncRunId }, 400);
