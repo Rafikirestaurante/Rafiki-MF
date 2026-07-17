@@ -1,11 +1,12 @@
 export const BANCOLOMBIA_ALERT_EMAIL = "alertasynotificaciones@an.notificacionesbancolombia.com";
-export const BANCOLOMBIA_EXTRACTOR_VERSION = "bancolombia-2B-v1";
+export const BANCOLOMBIA_EXTRACTOR_VERSION = "bancolombia-2B1-v2";
 
 export type BancolombiaMovementType = "income" | "transfer" | "card_purchase";
 
 export type BancolombiaExtraction = {
   movement_type: BancolombiaMovementType;
   transaction_date: string;
+  transaction_at: string;
   detail: string;
   amount_cop: number;
   reference_text: string;
@@ -155,6 +156,57 @@ export function extractTransactionDate(textValue: unknown, fallback: Date | stri
   return bogotaIsoDay(fallback);
 }
 
+function bogotaClock(value: Date | string | number): { hour: number; minute: number; second: number } {
+  const date = value instanceof Date ? value : new Date(value);
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "America/Bogota",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(safeDate);
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return { hour: Number(map.hour || 0), minute: Number(map.minute || 0), second: Number(map.second || 0) };
+}
+
+export function extractTransactionDateTime(textValue: unknown, fallback: Date | string | number): {
+  transaction_date: string;
+  transaction_at: string;
+  time_fallback_used: boolean;
+} {
+  const transactionDate = extractTransactionDate(textValue, fallback);
+  const text = removeAccents(flattenText(textValue)).toLowerCase();
+  const time = text.match(/(?:\ba\s+las?\s+|\bhora\s*:?\s*)?([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?/i);
+  const fallbackClock = bogotaClock(fallback);
+  let hour = fallbackClock.hour;
+  let minute = fallbackClock.minute;
+  let second = fallbackClock.second;
+  let timeFallbackUsed = true;
+
+  if (time) {
+    const parsedHour = Number(time[1]);
+    const parsedMinute = Number(time[2]);
+    const parsedSecond = Number(time[3] || 0);
+    const meridiem = String(time[4] || "").replace(/[.\s]/g, "").toLowerCase();
+    if ((!meridiem && parsedHour <= 23) || (meridiem && parsedHour >= 1 && parsedHour <= 12)) {
+      hour = parsedHour;
+      if (meridiem === "pm" && hour < 12) hour += 12;
+      if (meridiem === "am" && hour === 12) hour = 0;
+      minute = parsedMinute;
+      second = parsedSecond;
+      timeFallbackUsed = false;
+    }
+  }
+
+  const localTimestamp = `${transactionDate}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:${String(second).padStart(2, "0")}-05:00`;
+  return {
+    transaction_date: transactionDate,
+    transaction_at: new Date(localTimestamp).toISOString(),
+    time_fallback_used: timeFallbackUsed
+  };
+}
+
 function cleanDetail(value: unknown): string {
   return flattenText(value)
     .replace(/^(?:a|de|en)\s+/i, "")
@@ -255,14 +307,15 @@ export function extractBancolombiaMovement(input: {
 
   if (amount === null || amount < 0) throw new Error("Se identificó una alerta de Bancolombia, pero no fue posible extraer un valor válido.");
 
-  const transactionDate = extractTransactionDate(combined, input.receivedAt);
+  const transactionMoment = extractTransactionDateTime(combined, input.receivedAt);
   const referenceText = extractReference(combined);
   const accountHint = extractAccountHint(combined);
   const confidence: "high" | "medium" | "low" = exactRule && detail ? "high" : detail ? "medium" : "low";
 
   return {
     movement_type: type,
-    transaction_date: transactionDate,
+    transaction_date: transactionMoment.transaction_date,
+    transaction_at: transactionMoment.transaction_at,
     detail,
     amount_cop: amount,
     reference_text: referenceText,
@@ -270,7 +323,9 @@ export function extractBancolombiaMovement(input: {
     source_metadata: {
       account_hint: accountHint,
       reference_found: Boolean(referenceText),
-      date_fallback_used: !combined.includes(transactionDate),
+      date_fallback_used: !combined.includes(transactionMoment.transaction_date),
+      time_fallback_used: transactionMoment.time_fallback_used,
+      time_source: transactionMoment.time_fallback_used ? "email_received_at" : "email_content",
       extractor_rule: `${BANCOLOMBIA_EXTRACTOR_VERSION}:${type}`
     }
   };

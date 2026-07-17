@@ -8,8 +8,8 @@ export async function getFinancialMovements(limit = 300) {
   ensureSupabase();
   const { data, error } = await supabase
     .from("financial_movements")
-    .select("id,gmail_message_id,source,movement_type,transaction_date,email_received_at,detail,amount_cop,sender_email,email_subject,extraction_status,extraction_confidence,reference_text,extractor_version,created_at")
-    .order("transaction_date", { ascending: false })
+    .select("id,gmail_message_id,source,movement_type,transaction_date,transaction_at,email_received_at,detail,amount_cop,sender_email,email_subject,extraction_status,extraction_confidence,reference_text,extractor_version,created_at")
+    .order("transaction_at", { ascending: false })
     .order("email_received_at", { ascending: false, nullsFirst: false })
     .limit(limit);
   if (error) throw new Error(error.message || "No se pudieron consultar los movimientos.");

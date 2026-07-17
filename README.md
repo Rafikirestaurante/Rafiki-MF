@@ -4,7 +4,7 @@ Aplicación independiente para documentar movimientos bancarios detectados en Gm
 
 ## Versión
 
-**1.2.0 — Fase 2B: extractor de movimientos Bancolombia**
+**1.2.1 — Fase 2B.1: fecha, hora, último movimiento y sincronización directa**
 
 ## Alcance de esta entrega
 
@@ -20,7 +20,10 @@ Aplicación independiente para documentar movimientos bancarios detectados en Gm
 - Sincronización manual por rango de fechas.
 - Registro técnico de candidatos de Gmail.
 - Extractor Bancolombia para ingresos, transferencias y compras con tarjeta.
-- Normalización de fechas, valores COP, detalle y referencia.
+- Normalización de fecha, hora, valores COP, detalle y referencia.
+- Último movimiento siempre visible y listado ordenado del más reciente al más antiguo.
+- Botón de sincronización disponible dentro del módulo Movimientos.
+- Explicación clara de los estados de revisión.
 - Control primario de duplicados por `gmail_message_id + movement_type`.
 - Visualización de movimientos y resumen informativo del día.
 
@@ -40,11 +43,12 @@ La aplicación no afecta Caja, Cartera, Gastos ni Pedidos y no utiliza el proyec
    - `supabase/2026-07-14-fase1a-base-independiente.sql`
    - `supabase/2026-07-16-fase2a-motor-sincronizacion.sql`
    - `supabase/2026-07-16-fase2b-bancolombia.sql`
+   - `supabase/2026-07-16-fase2b1-fecha-hora-sincronizacion-movimientos.sql`
 2. Copia `.env.example` como `.env` y configura Supabase.
 3. Instala dependencias con `npm install --package-lock=false`.
 4. Ejecuta `npm run dev`.
 5. Sigue `docs/INSTALACION-GMAIL-SUPABASE.md` para conectar Gmail API.
-6. Consulta `docs/FASE-2B-BANCOLOMBIA.md` para desplegar y probar esta fase.
+6. Consulta `docs/FASE-2B-BANCOLOMBIA.md` y `docs/FASE-2B1-FECHA-HORA-MOVIMIENTOS.md` para desplegar y probar esta fase.
 
 ## Comandos
 

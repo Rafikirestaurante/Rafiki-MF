@@ -217,7 +217,7 @@ Deno.serve(async (request: Request) => {
           ].join("|");
           const fingerprint = await sha256Hex(fingerprintSource);
           const { data: existingMovement, error: existingMovementError } = await client.from("financial_movements")
-            .select("id,extraction_status")
+            .select("id,extraction_status,source_metadata")
             .eq("gmail_message_id", message.id)
             .eq("movement_type", extraction.movement_type)
             .maybeSingle();
@@ -225,6 +225,23 @@ Deno.serve(async (request: Request) => {
 
           if (existingMovement) {
             movementDuplicates += 1;
+            const { error: refreshMovementError } = await client.from("financial_movements").update({
+              transaction_date: extraction.transaction_date,
+              transaction_at: extraction.transaction_at,
+              email_received_at: receivedAt,
+              detail: extraction.detail,
+              amount_cop: extraction.amount_cop,
+              extraction_confidence: extraction.extraction_confidence,
+              extractor_version: BANCOLOMBIA_EXTRACTOR_VERSION,
+              reference_text: extraction.reference_text,
+              source_metadata: {
+                ...(existingMovement.source_metadata || {}),
+                ...extraction.source_metadata,
+                last_sync_run_id: syncRunId,
+                refreshed_at: new Date().toISOString()
+              }
+            }).eq("id", existingMovement.id);
+            if (refreshMovementError) throw refreshMovementError;
           } else {
             const { data: fingerprintMatch, error: fingerprintError } = await client.from("financial_movements")
               .select("id,gmail_message_id")
@@ -242,6 +259,7 @@ Deno.serve(async (request: Request) => {
               source: "bancolombia",
               movement_type: extraction.movement_type,
               transaction_date: extraction.transaction_date,
+              transaction_at: extraction.transaction_at,
               email_received_at: receivedAt,
               detail: extraction.detail,
               amount_cop: extraction.amount_cop,
@@ -267,7 +285,7 @@ Deno.serve(async (request: Request) => {
             raw_metadata: {
               ...baseMetadata,
               source_detected: "bancolombia",
-              extraction_result: existingMovement ? "movement_already_exists" : "movement_created",
+              extraction_result: existingMovement ? "movement_refreshed" : "movement_created",
               movement_type: extraction.movement_type,
               extractor_version: BANCOLOMBIA_EXTRACTOR_VERSION
             }

@@ -197,7 +197,7 @@ export default function SettingsPage({ profile }) {
 
       <section className="panel-card sync-card">
         <div className="panel-heading">
-          <div><span className="eyebrow">Fase 2B</span><h2>Sincronización y extractor Bancolombia</h2></div>
+          <div><span className="eyebrow">Fase 2B.1</span><h2>Sincronización y extractor Bancolombia</h2></div>
           <Badge tone={lastSync?.status === "success" ? "success" : lastSync?.status === "error" ? "danger" : lastSync ? "warning" : "neutral"}>
             {lastSync ? (lastSync.status === "success" ? "Completada" : lastSync.status === "partial" ? "Con novedades" : lastSync.status === "running" ? "En curso" : "Fallida") : "Sin ejecuciones"}
           </Badge>
@@ -236,8 +236,8 @@ export default function SettingsPage({ profile }) {
       ) : null}
 
       <section className="panel-card phase-card">
-        <div><span className="eyebrow">Versión 1.2.0</span><h2>Fase 2B — Extractor Bancolombia</h2><p>Detecta el remitente autorizado, lee el contenido de las alertas, normaliza valores y fechas, y registra ingresos, transferencias y compras sin duplicar el mismo correo.</p></div>
-        <Badge tone="blue">Fase 2B</Badge>
+        <div><span className="eyebrow">Versión 1.2.1</span><h2>Fase 2B.1 — Fecha, hora y acceso directo</h2><p>Muestra fecha y hora, prioriza el movimiento más reciente y permite sincronizar directamente desde el módulo Movimientos.</p></div>
+        <Badge tone="blue">Fase 2B.1</Badge>
       </section>
     </>
   );

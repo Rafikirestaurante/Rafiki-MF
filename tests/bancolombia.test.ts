@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   extractBancolombiaMovement,
   extractTransactionDate,
+  extractTransactionDateTime,
   htmlToText,
   isBancolombiaSender,
   normalizeCopAmount,
@@ -24,11 +25,12 @@ describe("Bancolombia parser", () => {
   it("extrae un ingreso", () => {
     expect(extractBancolombiaMovement({
       subject: "Recibiste un pago",
-      text: "Recibiste un pago de JUAN PEREZ por $ 85.000 el 16 de julio de 2026. Referencia: AB123456",
+      text: "Recibiste un pago de JUAN PEREZ por $ 85.000 el 16 de julio de 2026 a las 3:42 p. m. Referencia: AB123456",
       receivedAt: "2026-07-16T18:00:00Z"
     })).toMatchObject({
       movement_type: "income",
       transaction_date: "2026-07-16",
+      transaction_at: "2026-07-16T20:42:00.000Z",
       detail: "JUAN PEREZ",
       amount_cop: 85000,
       reference_text: "AB123456"
@@ -51,6 +53,23 @@ describe("Bancolombia parser", () => {
 
   it("usa la fecha recibida como respaldo", () => {
     expect(extractTransactionDate("Sin fecha explícita", "2026-07-16T02:00:00Z")).toBe("2026-07-15");
+  });
+
+
+  it("extrae hora de 24 horas", () => {
+    expect(extractTransactionDateTime("Movimiento del 16/07/2026 a las 08:05", "2026-07-16T18:30:00Z")).toEqual({
+      transaction_date: "2026-07-16",
+      transaction_at: "2026-07-16T13:05:00.000Z",
+      time_fallback_used: false
+    });
+  });
+
+  it("usa la hora de recepción como respaldo", () => {
+    expect(extractTransactionDateTime("Movimiento del 16/07/2026", "2026-07-16T18:30:15Z")).toEqual({
+      transaction_date: "2026-07-16",
+      transaction_at: "2026-07-16T18:30:15.000Z",
+      time_fallback_used: true
+    });
   });
 
   it("convierte HTML básico", () => {

@@ -20,6 +20,8 @@
 
 ### 2B — Bancolombia — Completada en versión 1.2.0
 
+### 2B.1 — Fecha, hora y acceso directo — Completada en versión 1.2.1
+
 - Detección del remitente autorizado.
 - Ingresos, transferencias y compras con tarjeta.
 - Fecha, valor, detalle y referencia.
