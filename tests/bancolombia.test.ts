@@ -37,6 +37,41 @@ describe("Bancolombia parser", () => {
     });
   });
 
+  it("extrae pago PROVEEDOR de REDEBAN SA y prioriza la hora del movimiento", () => {
+    expect(extractBancolombiaMovement({
+      subject: "¡Listo! Todo salió bien con tus movimientos Bancolombia",
+      text: "5:14 p. m. · ¡Listo! Todo salió bien con tus movimientos Bancolombia: Recibiste un pago PROVEEDOR de REDEBAN SA por $114109.00 en tu cuenta de Ahorros el 17/07/2026 a las 17:13.",
+      receivedAt: "2026-07-17T22:14:00Z"
+    })).toMatchObject({
+      movement_type: "income",
+      transaction_date: "2026-07-17",
+      transaction_at: "2026-07-17T22:13:00.000Z",
+      detail: "REDEBAN SA",
+      amount_cop: 114109,
+      extraction_confidence: "high",
+      source_metadata: {
+        payment_kind: "PROVEEDOR",
+        payment_origin: "REDEBAN SA",
+        account_type: "Ahorros",
+        date_fallback_used: false,
+        time_fallback_used: false,
+        time_source: "email_content"
+      }
+    });
+  });
+
+  it("mantiene compatibilidad con ingresos sin tipo de pago", () => {
+    expect(extractBancolombiaMovement({
+      text: "Recibiste un pago de CLIENTE PRUEBA por $50.000 el 18/07/2026 a las 09:30.",
+      receivedAt: "2026-07-18T14:31:00Z"
+    })).toMatchObject({
+      movement_type: "income",
+      detail: "CLIENTE PRUEBA",
+      amount_cop: 50000,
+      source_metadata: { payment_kind: null, payment_origin: "CLIENTE PRUEBA" }
+    });
+  });
+
   it("extrae una transferencia", () => {
     expect(extractBancolombiaMovement({
       text: "Transferiste $120.000 desde tu cuenta *1234 a MARIA LOPEZ el 15/07/2026.",

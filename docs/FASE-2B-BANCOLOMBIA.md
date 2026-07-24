@@ -64,3 +64,20 @@ supabase/2026-07-16-fase2b-bancolombia.sql
 - `error`: error técnico registrado en `processing_errors`.
 
 La modificación manual de estados y observaciones se habilitará en la Fase 2F.
+
+
+## Actualización Fase 3A.2 — pagos con tipo intermedio
+
+Desde la versión 1.3.3 el extractor reconoce también alertas con la forma:
+
+```text
+Recibiste un pago [TIPO] de [ORIGEN] por $[VALOR] en tu cuenta de [CUENTA] el [FECHA] a las [HORA].
+```
+
+Caso real incorporado:
+
+```text
+Recibiste un pago PROVEEDOR de REDEBAN SA por $114109.00 en tu cuenta de Ahorros el 17/07/2026 a las 17:13.
+```
+
+Registro esperado: ingreso por 114109 COP; detalle `REDEBAN SA`; `payment_kind=PROVEEDOR`; `payment_origin=REDEBAN SA`; `account_type=Ahorros`; fecha 2026-07-17 y hora local 17:13. La hora explícita asociada al movimiento tiene prioridad sobre otras marcas horarias que puedan aparecer antes en la representación visual del mensaje.

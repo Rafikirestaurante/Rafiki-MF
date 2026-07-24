@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const expectedVersion = "1.3.2";
-const expectedPhase = "Fase 3A.1";
+const expectedVersion = "1.3.3";
+const expectedPhase = "Fase 3A.2";
 
 const migrations = [
   "supabase/2026-07-14-fase1a-base-independiente.sql",
@@ -71,6 +71,8 @@ const required = [
   "RESUMEN-FASE3A.md",
   "docs/FASE-3A1-AJUSTES-OPERATIVOS-CALENDARIO.md",
   "RESUMEN-FASE3A1.md",
+  "docs/FASE-3A2-NUEVA-REGLA-BANCOLOMBIA.md",
+  "RESUMEN-FASE3A2.md",
   "tests/calendar.test.js",
   "tests/bancolombia.test.ts",
   "tests/electronicInvoice.test.ts",
@@ -113,9 +115,9 @@ requireText(settings, "APP_VERSION", "SettingsPage.jsx");
 requireText(settings, "APP_PHASE_TITLE", "SettingsPage.jsx");
 
 const readme = read("README.md");
-requireText(readme, `**${expectedVersion} — ${expectedPhase}: ajustes operativos y calendario**`, "README.md");
+requireText(readme, `**${expectedVersion} — ${expectedPhase}: nueva regla Bancolombia para pagos con tipo**`, "README.md");
 requireText(readme, "npm install --package-lock=false", "README.md");
-requireText(readme, "La Fase 3A.1 tampoco requiere una migración SQL nueva", "README.md");
+requireText(readme, "Las Fases 3A.1 y 3A.2 no requieren migraciones SQL nuevas", "README.md");
 for (const migration of migrations) requireText(readme, migration, "README.md");
 for (const functionName of edgeFunctions) requireText(readme, `\`${functionName}\``, "README.md");
 
@@ -182,6 +184,17 @@ if (employeePage.includes("una vez por minuto")) fail("EmployeePublicPage todav�
 const syncNow = read("supabase/functions/gmail-sync-now/index.ts");
 if (syncNow.includes("sync_rate_limited") || syncNow.includes("wait_seconds: 60")) fail("gmail-sync-now todavía contiene el rate limit público de un minuto.");
 for (const token of ["requires_review: true", "unsupported_notification", "unrecognized_reason"]) requireText(syncNow, token, "gmail-sync-now");
+const bancolombiaExtractor = read("supabase/functions/_shared/bancolombia.ts");
+for (const token of [
+  'BANCOLOMBIA_EXTRACTOR_VERSION = "bancolombia-3A2-v3"',
+  "payment_kind: paymentKind || null",
+  "payment_origin: paymentOrigin || null",
+  "account_type: accountType || null",
+  "explicitTime || text.match"
+]) requireText(bancolombiaExtractor, token, "bancolombia.ts");
+const bancolombiaTests = read("tests/bancolombia.test.ts");
+for (const token of ["PROVEEDOR de REDEBAN SA", 'payment_kind: "PROVEEDOR"', 'detail: "REDEBAN SA"']) requireText(bancolombiaTests, token, "bancolombia.test.ts");
+
 const dashboard = read("src/pages/DashboardPage.jsx");
 for (const token of ["Calendario de actividad", "Alertas Bancolombia no reconocidas", "getDashboardMonthData"]) requireText(dashboard, token, "DashboardPage.jsx");
 

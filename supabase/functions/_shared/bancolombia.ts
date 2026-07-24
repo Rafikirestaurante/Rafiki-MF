@@ -1,5 +1,5 @@
 export const BANCOLOMBIA_ALERT_EMAIL = "alertasynotificaciones@an.notificacionesbancolombia.com";
-export const BANCOLOMBIA_EXTRACTOR_VERSION = "bancolombia-2B1-v2";
+export const BANCOLOMBIA_EXTRACTOR_VERSION = "bancolombia-3A2-v3";
 
 export type BancolombiaMovementType = "income" | "transfer" | "card_purchase";
 
@@ -131,6 +131,14 @@ export function bogotaIsoDay(value: Date | string | number): string {
   return `${map.year}-${map.month}-${map.day}`;
 }
 
+function hasExplicitTransactionDate(textValue: unknown): boolean {
+  const text = removeAccents(flattenText(textValue)).toLowerCase();
+  if (/\b20\d{2}[-/]([01]?\d)[-/]([0-3]?\d)\b/.test(text)) return true;
+  if (/\b([0-3]?\d)[/-]([01]?\d)[/-](20\d{2})\b/.test(text)) return true;
+  const named = text.match(/\b([0-3]?\d)\s+(?:de\s+)?([a-z]{3,10})\s+(?:de\s+)?(20\d{2})\b/);
+  return Boolean(named && MONTHS[named[2]]);
+}
+
 export function extractTransactionDate(textValue: unknown, fallback: Date | string | number): string {
   const text = removeAccents(flattenText(textValue)).toLowerCase();
 
@@ -177,7 +185,8 @@ export function extractTransactionDateTime(textValue: unknown, fallback: Date | 
 } {
   const transactionDate = extractTransactionDate(textValue, fallback);
   const text = removeAccents(flattenText(textValue)).toLowerCase();
-  const time = text.match(/(?:\ba\s+las?\s+|\bhora\s*:?\s*)?([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?/i);
+  const explicitTime = text.match(/(?:\ba\s+las?\s+|\bhora\s*:?\s*)([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?/i);
+  const time = explicitTime || text.match(/([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?/i);
   const fallbackClock = bogotaClock(fallback);
   let hour = fallbackClock.hour;
   let minute = fallbackClock.minute;
@@ -243,7 +252,9 @@ function amountFromPatterns(text: string, patterns: RegExp[]): number | null {
 }
 
 function classify(text: string): BancolombiaMovementType | null {
-  if (/recibiste\s+un\s+pago\s+de/i.test(text)) return "income";
+  // Bancolombia puede insertar una etiqueta entre “pago” y “de”, por ejemplo:
+  // “Recibiste un pago PROVEEDOR de REDEBAN SA por $114109.00”.
+  if (/recibiste\s+un\s+pago(?:\s+[a-záéíóúñ0-9_-]+){0,3}\s+de\s+/i.test(text)) return "income";
   if (/compraste\b/i.test(text)) return "card_purchase";
   if (/transferiste\b/i.test(text)) return "transfer";
   return null;
@@ -263,18 +274,33 @@ export function extractBancolombiaMovement(input: {
   let detail = "";
   let exactRule = false;
 
+  let paymentKind = "";
+  let paymentOrigin = "";
+  let accountType = "";
+
   if (type === "income") {
-    const exact = combined.match(/recibiste\s+un\s+pago\s+de\s+(.+?)\s+por\s+(?:cop\s*)?\$?\s*([\d][\d.,]*)/i);
+    // Regla flexible:
+    // - Recibiste un pago de JUAN PEREZ por $85.000
+    // - Recibiste un pago PROVEEDOR de REDEBAN SA por $114109.00
+    const exact = combined.match(/recibiste\s+un\s+pago(?:\s+([a-záéíóúñ0-9_-]+))?\s+de\s+(.+?)\s+por\s+(?:cop\s*)?\$?\s*([\d][\d.,]*)/i);
     if (exact) {
-      detail = cleanDetail(exact[1]);
-      amount = normalizeCopAmount(exact[2]);
+      paymentKind = cleanDetail(exact[1] || "").toUpperCase();
+      paymentOrigin = cleanDetail(exact[2]);
+      detail = paymentOrigin;
+      amount = normalizeCopAmount(exact[3]);
       exactRule = true;
     }
     if (amount === null) amount = amountFromPatterns(combined, [
       /recibiste\s+un\s+pago[\s\S]{0,180}?(?:por|valor|monto)\s*:?[\s$]*(?:cop\s*)?([\d][\d.,]*)/i,
       /(?:valor|monto)\s*:?\s*(?:cop\s*)?\$?\s*([\d][\d.,]*)/i
     ]);
-    if (!detail) detail = cleanDetail(combined.match(/recibiste\s+un\s+pago\s+de\s+(.+?)(?:\s+por\s+|\s+el\s+|$)/i)?.[1] || "Ingreso recibido");
+    if (!detail) {
+      const fallback = combined.match(/recibiste\s+un\s+pago(?:\s+([a-záéíóúñ0-9_-]+))?\s+de\s+(.+?)(?:\s+por\s+|\s+el\s+|$)/i);
+      paymentKind = cleanDetail(fallback?.[1] || "").toUpperCase();
+      paymentOrigin = cleanDetail(fallback?.[2] || "");
+      detail = paymentOrigin || "Ingreso recibido";
+    }
+    accountType = cleanDetail(combined.match(/en\s+tu\s+cuenta\s+de\s+([a-záéíóúñ ]+?)(?:\s+el\s+|[.,]|$)/i)?.[1] || "");
   }
 
   if (type === "transfer") {
@@ -323,9 +349,12 @@ export function extractBancolombiaMovement(input: {
     source_metadata: {
       account_hint: accountHint,
       reference_found: Boolean(referenceText),
-      date_fallback_used: !combined.includes(transactionMoment.transaction_date),
+      date_fallback_used: !hasExplicitTransactionDate(combined),
       time_fallback_used: transactionMoment.time_fallback_used,
       time_source: transactionMoment.time_fallback_used ? "email_received_at" : "email_content",
+      payment_kind: paymentKind || null,
+      payment_origin: paymentOrigin || null,
+      account_type: accountType || null,
       extractor_rule: `${BANCOLOMBIA_EXTRACTOR_VERSION}:${type}`
     }
   };

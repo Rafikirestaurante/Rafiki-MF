@@ -4,9 +4,9 @@
 
 ## Versión actual
 
-**1.3.2 — Fase 3A.1: ajustes operativos y calendario**
+**1.3.3 — Fase 3A.2: nueva regla Bancolombia para pagos con tipo**
 
-Esta revisión parte de la base estabilizada 1.3.1. Elimina el límite artificial de una sincronización pública por minuto en `/empleados`, refuerza el registro de alertas Bancolombia cuyo formato no puede interpretarse y añade un calendario mensual en Inicio para consultar actividad de días anteriores.
+Esta revisión parte de la versión 1.3.2 y añade una regla Bancolombia para alertas con la estructura `Recibiste un pago [TIPO] de [ORIGEN] por $[VALOR]`, incluyendo el caso real `PROVEEDOR de REDEBAN SA`. El origen se conserva como detalle visible, el tipo de pago se guarda en metadatos y la hora explícita del movimiento tiene prioridad sobre una hora visual previa del correo.
 
 ## Funciones disponibles
 
@@ -23,6 +23,9 @@ Esta revisión parte de la base estabilizada 1.3.1. Elimina el límite artificia
 - Sincronización rápida de hasta 20 alertas Bancolombia recibidas durante la última hora.
 - Sincronización histórica de movimientos por rango de fechas.
 - Extracción de ingresos, transferencias y compras con tarjeta de Bancolombia.
+- Reconocimiento de pagos Bancolombia con tipo intermedio, por ejemplo `Recibiste un pago PROVEEDOR de REDEBAN SA por $114109.00`.
+- En estos pagos, `REDEBAN SA` se registra como detalle visible y `PROVEEDOR` se conserva como `payment_kind` dentro de los metadatos.
+- La hora explícita del movimiento (`a las 17:13`) tiene prioridad sobre una marca horaria visual anterior del correo (`5:14 p. m.`).
 - Normalización de fecha, hora, valor COP, detalle y referencia.
 - Facturación electrónica mediante ZIP, XML UBL y PDF.
 - Extracción de proveedor, NIT, número, CUFE, fechas, subtotal, impuestos y total.
@@ -69,7 +72,7 @@ Ejecuta en Supabase SQL Editor, respetando este orden:
 6. `supabase/2026-07-17-fase2b32-simplificacion-operativa.sql`
 7. `supabase/2026-07-17-fase2d-facturacion-electronica.sql`
 
-La Fase 3A.1 tampoco requiere una migración SQL nueva; reutiliza `gmail_sync_candidates` para conservar las alertas Bancolombia no reconocidas.
+Las Fases 3A.1 y 3A.2 no requieren migraciones SQL nuevas. La 3A.2 solo amplía el extractor Bancolombia y sus pruebas, reutilizando la estructura existente.
 
 ## Secretos de Supabase Edge Functions
 
