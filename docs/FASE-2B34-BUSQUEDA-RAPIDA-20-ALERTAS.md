@@ -14,6 +14,6 @@ La operación:
 - mantiene el control de duplicados;
 - actualiza la lista al finalizar;
 - conserva la búsqueda histórica por fechas en el panel administrativo;
-- mantiene para empleados el límite de una solicitud por minuto.
+- Nota histórica: aquí se mantenía un límite de una solicitud por minuto; la versión 1.3.2 / Fase 3A.1 lo retiró.
 
 No requiere SQL nuevo. Debe redesplegarse `gmail-sync-now` y se recomienda redesplegar `employee-public-access`.

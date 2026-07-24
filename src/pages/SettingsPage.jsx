@@ -12,6 +12,7 @@ import {
   edgeErrorDetails
 } from "../services/gmailIntegrationService.js";
 import { getEmployeeAccessSettings, saveEmployeeAccessSettings } from "../services/employeeAccessService.js";
+import { APP_PHASE, APP_PHASE_DESCRIPTION, APP_PHASE_TITLE, APP_VERSION } from "../config/appMetadata.js";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -462,8 +463,8 @@ export default function SettingsPage({ profile }) {
       ) : null}
 
       <section className="panel-card phase-card">
-        <div><span className="eyebrow">Versión 1.3.0</span><h2>Fase 2D — Facturación electrónica</h2><p>Detección de correos con ZIP, XML y PDF, extracción UBL y registro controlado de facturas electrónicas.</p></div>
-        <Badge tone="blue">Fase 2D</Badge>
+        <div><span className="eyebrow">Versión {APP_VERSION}</span><h2>{APP_PHASE} — {APP_PHASE_TITLE}</h2><p>{APP_PHASE_DESCRIPTION}</p></div>
+        <Badge tone="blue">{APP_PHASE}</Badge>
       </section>
     </>
   );

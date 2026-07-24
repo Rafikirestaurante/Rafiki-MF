@@ -2,65 +2,193 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const required = [
-  "src/App.jsx",
-  "src/pages/SettingsPage.jsx",
-  "src/services/gmailIntegrationService.js",
+const expectedVersion = "1.3.2";
+const expectedPhase = "Fase 3A.1";
+
+const migrations = [
   "supabase/2026-07-14-fase1a-base-independiente.sql",
-  "supabase/functions/gmail-oauth-start/index.ts",
-  "supabase/functions/gmail-oauth-callback/index.ts",
-  "supabase/functions/gmail-connection-status/index.ts",
-  "supabase/functions/gmail-test-connection/index.ts",
-  "supabase/functions/gmail-diagnostics/index.ts",
-  "supabase/functions/gmail-disconnect/index.ts",
-  "supabase/functions/gmail-sync-now/index.ts",
   "supabase/2026-07-16-fase2a-motor-sincronizacion.sql",
   "supabase/2026-07-16-fase2b-bancolombia.sql",
   "supabase/2026-07-16-fase2b1-fecha-hora-sincronizacion-movimientos.sql",
-  "supabase/functions/_shared/bancolombia.ts",
-  "src/services/movementService.js",
-  "docs/FASE-2B-BANCOLOMBIA.md",
-  "docs/FASE-2B1-FECHA-HORA-MOVIMIENTOS.md",
-  "docs/FASE-2B2-ACCESO-PUBLICO-EMPLEADOS.md",
-  "docs/FASE-2B3-DIAGNOSTICO-SINCRONIZACION-RAPIDA.md",
-  "docs/FASE-2B31-CORRECCION-DIAGNOSTICO-CORS.md",
-  "docs/FASE-2B32-SIMPLIFICACION-OPERATIVA.md",
-  "docs/INSTALACION-GMAIL-SUPABASE.md",
-  "src/pages/EmployeePublicPage.jsx",
-  "src/services/employeeAccessService.js",
   "supabase/2026-07-17-fase2b2-acceso-publico-empleados.sql",
-  "supabase/functions/_shared/employeeAccess.ts",
-  "supabase/functions/employee-access-admin/index.ts",
-  "supabase/functions/employee-public-access/index.ts",
   "supabase/2026-07-17-fase2b32-simplificacion-operativa.sql",
-  "docs/FASE-2B33-PWA-SINCRONIZACION-EMPLEADOS.md",
-  "docs/FASE-2B34-BUSQUEDA-RAPIDA-20-ALERTAS.md",
-  "public/manifest.webmanifest",
-  "public/empleados.webmanifest",
-  "public/empleados-icon-192.png",
-  "public/empleados-icon-512.png",
-  "supabase/2026-07-17-fase2d-facturacion-electronica.sql",
-  "supabase/functions/_shared/electronicInvoice.ts",
-  "supabase/functions/gmail-sync-invoices/index.ts",
-  "src/services/invoiceService.js",
-  "docs/FASE-2D-FACTURACION-ELECTRONICA.md"
+  "supabase/2026-07-17-fase2d-facturacion-electronica.sql"
 ];
 
+const edgeFunctions = [
+  "gmail-oauth-start",
+  "gmail-oauth-callback",
+  "gmail-connection-status",
+  "gmail-test-connection",
+  "gmail-diagnostics",
+  "gmail-disconnect",
+  "gmail-sync-now",
+  "gmail-sync-invoices",
+  "employee-access-admin",
+  "employee-public-access"
+];
+
+const required = [
+  "README.md",
+  "package.json",
+  "vercel.json",
+  "vite.config.js",
+  ".gitignore",
+  ".env.example",
+  ".github/workflows/deploy-supabase-functions.yml",
+  "src/App.jsx",
+  "src/main.jsx",
+  "src/config/appMetadata.js",
+  "src/pages/SettingsPage.jsx",
+  "src/pages/EmployeePublicPage.jsx",
+  "src/pages/InvoicesPage.jsx",
+  "src/pages/MovementsPage.jsx",
+  "src/services/gmailIntegrationService.js",
+  "src/services/employeeAccessService.js",
+  "src/services/invoiceService.js",
+  "src/services/movementService.js",
+  "src/services/dashboardService.js",
+  "src/utils/calendar.js",
+  "public/manifest.webmanifest",
+  "public/empleados.webmanifest",
+  "public/icon-192.png",
+  "public/icon-512.png",
+  "public/empleados-icon-192.png",
+  "public/empleados-icon-512.png",
+  "supabase/config.toml",
+  "supabase/functions/.env.example",
+  "supabase/functions/_shared/bancolombia.ts",
+  "supabase/functions/_shared/electronicInvoice.ts",
+  "supabase/functions/_shared/employeeAccess.ts",
+  "supabase/functions/_shared/cors.ts",
+  "docs/INSTALACION-GMAIL-SUPABASE.md",
+  "docs/FASE-2B-BANCOLOMBIA.md",
+  "docs/FASE-2B2-ACCESO-PUBLICO-EMPLEADOS.md",
+  "docs/FASE-2B34-BUSQUEDA-RAPIDA-20-ALERTAS.md",
+  "docs/FASE-2D-FACTURACION-ELECTRONICA.md",
+  "docs/FASE-3A-ESTABILIZACION-BASE.md",
+  "docs/CRONOGRAMA-PROYECTO.md",
+  "RESUMEN-FASE3A.md",
+  "docs/FASE-3A1-AJUSTES-OPERATIVOS-CALENDARIO.md",
+  "RESUMEN-FASE3A1.md",
+  "tests/calendar.test.js",
+  "tests/bancolombia.test.ts",
+  "tests/electronicInvoice.test.ts",
+  ...migrations,
+  ...edgeFunctions.map((name) => `supabase/functions/${name}/index.ts`)
+];
+
+function fail(message) {
+  throw new Error(message);
+}
+
+function read(file) {
+  return fs.readFileSync(path.join(root, file), "utf8");
+}
+
+function requireText(content, token, context) {
+  if (!content.includes(token)) fail(`${context} no contiene: ${token}`);
+}
+
 const missing = required.filter((file) => !fs.existsSync(path.join(root, file)));
-if (missing.length) {
-  console.error("Archivos faltantes:\n" + missing.join("\n"));
-  process.exit(1);
+if (missing.length) fail(`Archivos faltantes:\n${missing.join("\n")}`);
+
+const forbiddenFiles = ["package-lock.json", "npm-shrinkwrap.json", ".env", ".env.local", ".env.production"];
+const presentForbidden = forbiddenFiles.filter((file) => fs.existsSync(path.join(root, file)));
+if (presentForbidden.length) fail(`Archivos prohibidos encontrados:\n${presentForbidden.join("\n")}`);
+
+const packageJson = JSON.parse(read("package.json"));
+if (packageJson.name !== "rafiki-movimientos-facturas") fail("Nombre de proyecto inesperado.");
+if (packageJson.version !== expectedVersion) fail(`Versión esperada en package.json: ${expectedVersion}.`);
+if (packageJson.scripts?.check !== "npm test && npm run lint && npm run validate && npm run build") {
+  fail("El comando npm run check no contiene la secuencia integral esperada.");
 }
 
-const sql = fs.readFileSync(path.join(root, "supabase/2026-07-14-fase1a-base-independiente.sql"), "utf8");
-const expectations = ["create table if not exists public.app_users", "public.financial_movements", "public.electronic_invoices", "public.daily_verifications", "public.gmail_connections"];
-for (const token of expectations) {
-  if (!sql.includes(token)) throw new Error(`El SQL no contiene: ${token}`);
+const metadata = read("src/config/appMetadata.js");
+requireText(metadata, `APP_VERSION = "${expectedVersion}"`, "appMetadata.js");
+requireText(metadata, `APP_PHASE = "${expectedPhase}"`, "appMetadata.js");
+
+const settings = read("src/pages/SettingsPage.jsx");
+requireText(settings, "APP_VERSION", "SettingsPage.jsx");
+requireText(settings, "APP_PHASE_TITLE", "SettingsPage.jsx");
+
+const readme = read("README.md");
+requireText(readme, `**${expectedVersion} — ${expectedPhase}: ajustes operativos y calendario**`, "README.md");
+requireText(readme, "npm install --package-lock=false", "README.md");
+requireText(readme, "La Fase 3A.1 tampoco requiere una migración SQL nueva", "README.md");
+for (const migration of migrations) requireText(readme, migration, "README.md");
+for (const functionName of edgeFunctions) requireText(readme, `\`${functionName}\``, "README.md");
+
+const gitignore = read(".gitignore").split(/\r?\n/).map((line) => line.trim());
+for (const entry of ["node_modules/", "dist/", ".env", ".env.local", "package-lock.json", "npm-shrinkwrap.json"]) {
+  if (!gitignore.includes(entry)) fail(`.gitignore no contiene ${entry}`);
 }
 
-const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-if (packageJson.name !== "rafiki-movimientos-facturas") throw new Error("Nombre de proyecto inesperado.");
+const frontendEnv = read(".env.example");
+requireText(frontendEnv, "VITE_SUPABASE_URL=https://TU_PROJECT_REF.supabase.co", ".env.example");
+requireText(frontendEnv, "VITE_SUPABASE_ANON_KEY=TU_SUPABASE_ANON_KEY", ".env.example");
 
-if (packageJson.version !== "1.3.0") throw new Error("Versión esperada: 1.3.0.");
+const functionEnv = read("supabase/functions/.env.example");
+for (const variable of [
+  "GOOGLE_GMAIL_CLIENT_ID=",
+  "GOOGLE_GMAIL_CLIENT_SECRET=",
+  "GOOGLE_GMAIL_REDIRECT_URI=",
+  "APP_PUBLIC_URL=",
+  "APP_ALLOWED_ORIGINS=",
+  "GMAIL_TOKEN_ENCRYPTION_KEY="
+]) requireText(functionEnv, variable, "supabase/functions/.env.example");
+if (/^APP_PUBLIC_URL=.*(?:Valor:|["'])/m.test(functionEnv)) fail("APP_PUBLIC_URL contiene un formato de ejemplo inválido.");
 
-console.log("Validación correcta: Rafiki MF Fase 2D con facturación electrónica ZIP, XML y PDF.");
+const vercel = JSON.parse(read("vercel.json"));
+if (!String(vercel.installCommand || "").includes("--package-lock=false")) fail("Vercel debe instalar con --package-lock=false.");
+if (/\bnpm\s+ci\b/i.test(String(vercel.installCommand || ""))) fail("Vercel no puede usar npm ci.");
+if (vercel.outputDirectory !== "dist") fail("Vercel debe publicar el directorio dist.");
+
+const workflow = read(".github/workflows/deploy-supabase-functions.yml");
+for (const functionName of edgeFunctions) {
+  requireText(workflow, `supabase functions deploy ${functionName}`, "Workflow de Edge Functions");
+}
+
+const discoveredFunctions = fs.readdirSync(path.join(root, "supabase/functions"), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && entry.name !== "_shared" && fs.existsSync(path.join(root, "supabase/functions", entry.name, "index.ts")))
+  .map((entry) => entry.name)
+  .sort();
+const expectedFunctionsSorted = [...edgeFunctions].sort();
+if (JSON.stringify(discoveredFunctions) !== JSON.stringify(expectedFunctionsSorted)) {
+  fail(`Las Edge Functions encontradas no coinciden con las esperadas.\nEncontradas: ${discoveredFunctions.join(", ")}`);
+}
+
+const baseSql = read(migrations[0]);
+for (const token of [
+  "create table if not exists public.app_users",
+  "public.financial_movements",
+  "public.electronic_invoices",
+  "public.daily_verifications",
+  "public.gmail_connections",
+  "create or replace function public.handle_new_app_user()"
+]) requireText(baseSql, token, migrations[0]);
+
+const invoiceSql = read(migrations.at(-1));
+for (const token of ["document_key", "source_file_type", "electronic_invoices_document_key_unique"]) {
+  requireText(invoiceSql, token, migrations.at(-1));
+}
+
+const supabaseConfig = read("supabase/config.toml");
+requireText(supabaseConfig, "[functions.gmail-oauth-callback]", "supabase/config.toml");
+requireText(supabaseConfig, "verify_jwt = false", "supabase/config.toml");
+
+const employeePage = read("src/pages/EmployeePublicPage.jsx");
+if (employeePage.includes("una vez por minuto")) fail("EmployeePublicPage todavía menciona el límite de un minuto.");
+const syncNow = read("supabase/functions/gmail-sync-now/index.ts");
+if (syncNow.includes("sync_rate_limited") || syncNow.includes("wait_seconds: 60")) fail("gmail-sync-now todavía contiene el rate limit público de un minuto.");
+for (const token of ["requires_review: true", "unsupported_notification", "unrecognized_reason"]) requireText(syncNow, token, "gmail-sync-now");
+const dashboard = read("src/pages/DashboardPage.jsx");
+for (const token of ["Calendario de actividad", "Alertas Bancolombia no reconocidas", "getDashboardMonthData"]) requireText(dashboard, token, "DashboardPage.jsx");
+
+const mainManifest = JSON.parse(read("public/manifest.webmanifest"));
+const employeeManifest = JSON.parse(read("public/empleados.webmanifest"));
+if (mainManifest.id !== "/" || mainManifest.start_url !== "/") fail("El manifiesto principal tiene una ruta inesperada.");
+if (employeeManifest.id !== "/empleados" || employeeManifest.start_url !== "/empleados") fail("El manifiesto de empleados tiene una ruta inesperada.");
+
+console.log(`Validación correcta: Rafiki MF ${expectedVersion} / ${expectedPhase}.`);
+console.log(`Estructura: ${migrations.length} migraciones, ${edgeFunctions.length} Edge Functions y documentación vigente.`);

@@ -1,50 +1,52 @@
-# Rafiki MF — Fase 2B.2
+# Rafiki MF — Acceso público controlado para empleados
 
-## Acceso público controlado para empleados
+Estado vigente después de las Fases 2B.3.2 y 2B.3.4.
 
-La ruta pública es:
+## Ruta
 
 ```text
 https://TU-DOMINIO-VERCEL/empleados
 ```
 
-El Administrador configura desde **Configuración** un nombre de acceso y una contraseña compartida. La contraseña nunca se guarda en texto plano: se deriva con PBKDF2-SHA-256, sal aleatoria y 120.000 iteraciones.
+El Administrador configura desde **Configuración** un nombre de acceso y una contraseña compartida. La contraseña no se guarda en texto plano: se deriva mediante PBKDF2-SHA-256, sal aleatoria y 120.000 iteraciones.
 
-## Restricciones
+## Restricciones actuales
 
 - Solo devuelve los cinco movimientos más recientes.
 - No expone IDs de Gmail, asuntos, remitentes, referencias técnicas ni historial completo.
-- No permite abrir el panel administrativo, facturas o configuración.
+- No permite abrir el panel administrativo, Gmail, facturas o configuración.
 - La sesión pública dura ocho horas.
-- Cambiar la configuración invalida las sesiones abiertas.
-- La sincronización pública consulta solamente alertas de Bancolombia de los últimos tres días.
-- La sincronización pública se limita a una ejecución por minuto.
+- Cambiar el nombre, la contraseña o el estado invalida las sesiones abiertas.
+- La búsqueda rápida consulta solamente alertas de Bancolombia recibidas durante la última hora.
+- Revisa como máximo las 20 alertas más recientes.
+- Nota histórica: en esta fase la sincronización pública se limitaba a una ejecución por minuto; la versión 1.3.2 / Fase 3A.1 retiró ese límite.
 - Solo los movimientos de ingreso pueden confirmarse como pagos recibidos.
 
-## Confirmación
+## Confirmación de pagos
 
 El trabajador escribe su nombre y, opcionalmente, una observación. La confirmación:
 
 - queda registrada en `employee_payment_confirmations`;
-- cambia el movimiento a `verified`;
-- guarda fecha y hora;
 - queda registrada en `document_audit_log`;
+- no cambia ni elimina el movimiento bancario;
+- no agrega estados de revisión a `financial_movements`;
 - no puede repetirse para el mismo movimiento.
 
-## Instalación
+## Instalación y despliegue
 
 1. Ejecutar `supabase/2026-07-17-fase2b2-acceso-publico-empleados.sql`.
-2. Subir el proyecto completo a GitHub.
-3. Confirmar en GitHub Actions el despliegue de:
+2. Ejecutar también `supabase/2026-07-17-fase2b32-simplificacion-operativa.sql`.
+3. Subir el proyecto completo a GitHub.
+4. Confirmar el despliegue de:
    - `employee-access-admin`
    - `employee-public-access`
    - `gmail-sync-now`
-4. Esperar el despliegue de Vercel.
-5. Entrar como Administrador a Configuración.
-6. Definir el nombre, la contraseña y activar el acceso.
-7. Copiar y compartir el enlace `/empleados`.
+5. Esperar el despliegue de Vercel.
+6. Entrar como Administrador a Configuración.
+7. Definir el nombre, la contraseña y activar el acceso.
+8. Abrir y compartir `/empleados`.
 
-## Tablas nuevas
+## Tablas
 
 - `employee_public_access_settings`
 - `employee_payment_confirmations`

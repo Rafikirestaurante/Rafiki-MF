@@ -2,6 +2,8 @@
 
 Versión: **1.2.6**
 
+> **Documento histórico:** la selección de 2, 6 y 12 horas fue reemplazada en la Fase 2B.3.4 por una búsqueda única de hasta 20 alertas recibidas durante la última hora. Para la operación actual consulta `FASE-2B34-BUSQUEDA-RAPIDA-20-ALERTAS.md`.
+
 ## Objetivo
 
 Hacer que la vista `/empleados` use el mismo esquema de sincronización rápida del módulo Movimientos y pueda instalarse como una aplicación independiente para trabajadores.
@@ -13,7 +15,7 @@ Hacer que la vista `/empleados` use el mismo esquema de sincronización rápida 
 - Búsqueda exclusiva del remitente autorizado de Bancolombia.
 - Máximo 100 mensajes por ejecución.
 - Validación de la hora exacta de recepción del correo.
-- Límite público de una sincronización por minuto.
+- Nota histórica: esta fase introdujo un límite público de una sincronización por minuto; la versión 1.3.2 / Fase 3A.1 lo retiró.
 - El backend rechaza cualquier rango distinto de 2, 6 o 12 horas y usa 2 horas como respaldo.
 - Después de sincronizar se actualizan inmediatamente los últimos cinco movimientos.
 

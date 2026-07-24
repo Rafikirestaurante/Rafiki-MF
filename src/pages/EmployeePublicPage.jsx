@@ -120,8 +120,8 @@ export default function EmployeePublicPage() {
     setMessage("");
     try {
       const data = await syncEmployeePublicMovements(session.access_token);
-      setTone(data.errors_count ? "warning" : "success");
-      setMessage(`Búsqueda rápida completada: ${data.bancolombia_emails || data.messages_scanned || 0} de hasta 20 alerta(s) de Bancolombia revisada(s) durante la última hora, ${data.movements_created || 0} movimiento(s) nuevo(s) y ${data.duplicates_ignored || data.movement_duplicates || 0} ya registrado(s).`);
+      setTone(data.errors_count || data.bancolombia_unidentified ? "warning" : "success");
+      setMessage(`Búsqueda rápida completada: ${data.bancolombia_emails || data.messages_scanned || 0} de hasta 20 alerta(s) de Bancolombia revisada(s) durante la última hora, ${data.movements_created || 0} movimiento(s) nuevo(s), ${data.duplicates_ignored || data.movement_duplicates || 0} ya registrado(s) y ${data.bancolombia_unidentified || 0} alerta(s) guardada(s) para revisión.`);
       await load(session, true);
     } catch (error) {
       setTone("danger");
@@ -236,7 +236,7 @@ export default function EmployeePublicPage() {
             ))}
           </section>
         )}
-        <p className="employee-public-footer-note">La búsqueda pública revisa como máximo 20 alertas Bancolombia de la última hora y puede ejecutarse una vez por minuto.</p>
+        <p className="employee-public-footer-note">La búsqueda pública revisa como máximo 20 alertas Bancolombia de la última hora. Si una alerta no puede interpretarse, queda registrada para revisión administrativa.</p>
       </section>
 
       {confirming ? (

@@ -1,109 +1,195 @@
 # Rafiki Movimientos y Facturas
 
-Aplicación independiente para documentar movimientos bancarios detectados en Gmail, registrar facturas electrónicas y realizar una verificación manual al finalizar el día.
+**Rafiki MF** es una aplicación independiente para consultar movimientos bancarios detectados en Gmail, registrar facturas electrónicas y conservar trazabilidad documental. No comparte proyecto, base de datos, autenticación ni funciones con Rafiki Pedidos.
 
-## Versión
+## Versión actual
 
-**1.2.1 — Fase 2B.1: fecha, hora, último movimiento y sincronización directa**
+**1.3.2 — Fase 3A.1: ajustes operativos y calendario**
 
-## Alcance de esta entrega
+Esta revisión parte de la base estabilizada 1.3.1. Elimina el límite artificial de una sincronización pública por minuto en `/empleados`, refuerza el registro de alertas Bancolombia cuyo formato no puede interpretarse y añade un calendario mensual en Inicio para consultar actividad de días anteriores.
+
+## Funciones disponibles
 
 - React 18 + Vite con diseño adaptable a celular y computador.
-- PWA interna instalable.
+- PWA principal instalable como **Rafiki MF**.
+- PWA pública independiente **Rafiki Empleados** en `/empleados`.
 - Autenticación Supabase por correo y contraseña.
-- Roles `admin` y `reviewer`.
+- Roles internos `admin` y `reviewer`.
 - La primera cuenta registrada queda como Administrador.
-- Módulos: Inicio, Movimientos, Facturas y Configuración.
-- Supabase independiente y separado de Rafiki Pedidos.
+- Navegación principal: Inicio, Movimientos, Facturas y Configuración.
 - OAuth 2.0 de Gmail con permiso de solo lectura.
-- Refresh token cifrado con AES-256-GCM.
-- Sincronización manual por rango de fechas.
-- Registro técnico de candidatos de Gmail.
-- Extractor Bancolombia para ingresos, transferencias y compras con tarjeta.
-- Normalización de fecha, hora, valores COP, detalle y referencia.
-- Último movimiento siempre visible y listado ordenado del más reciente al más antiguo.
-- Botón de sincronización disponible dentro del módulo Movimientos.
-- Control primario de duplicados por `gmail_message_id + movement_type`.
-- Visualización de movimientos y resumen informativo del día.
+- Refresh token cifrado mediante AES-256-GCM.
+- Diagnóstico técnico de conexión con Gmail y Edge Functions.
+- Sincronización rápida de hasta 20 alertas Bancolombia recibidas durante la última hora.
+- Sincronización histórica de movimientos por rango de fechas.
+- Extracción de ingresos, transferencias y compras con tarjeta de Bancolombia.
+- Normalización de fecha, hora, valor COP, detalle y referencia.
+- Facturación electrónica mediante ZIP, XML UBL y PDF.
+- Extracción de proveedor, NIT, número, CUFE, fechas, subtotal, impuestos y total.
+- Control de duplicados de movimientos y documentos.
+- Registro incompleto cuando existe PDF sin XML interpretable.
+- Acceso restringido para empleados a los cinco movimientos más recientes.
+- Confirmaciones de pagos almacenadas de forma separada, sin modificar el movimiento bancario.
+- Registro de sincronizaciones, errores y auditoría documental.
+- `/empleados` puede solicitar una nueva búsqueda rápida sin esperar un minuto; se conserva el bloqueo de una sincronización global que ya esté en ejecución.
+- Las alertas recibidas desde `alertasynotificaciones@an.notificacionesbancolombia.com` que no coinciden con una regla conocida permanecen registradas en `gmail_sync_candidates` para revisión, sin crear un movimiento financiero falso.
+- Inicio incluye un calendario mensual navegable con movimientos, facturas y alertas Bancolombia no reconocidas por día.
 
-## Pendiente para próximas etapas
+## Requisitos
 
-- Extractor Nequi.
-- Lectura de ZIP, XML y PDF de facturación electrónica.
-- Control definitivo de duplicados.
-- Edición de estados, observaciones y verificación diaria.
+- Node.js 20 o superior.
+- npm.
+- Proyecto Supabase exclusivo para Rafiki MF.
+- Proyecto Google Cloud con Gmail API y OAuth 2.0.
+- Proyecto Vercel conectado al repositorio de Rafiki MF.
 
-La aplicación no afecta Caja, Cartera, Gastos ni Pedidos y no utiliza el proyecto Supabase de Rafiki Pedidos.
-
-## Instalación rápida
-
-1. Ejecuta los SQL en orden:
-   - `supabase/2026-07-14-fase1a-base-independiente.sql`
-   - `supabase/2026-07-16-fase2a-motor-sincronizacion.sql`
-   - `supabase/2026-07-16-fase2b-bancolombia.sql`
-   - `supabase/2026-07-16-fase2b1-fecha-hora-sincronizacion-movimientos.sql`
-2. Copia `.env.example` como `.env` y configura Supabase.
-3. Instala dependencias con `npm install --package-lock=false`.
-4. Ejecuta `npm run dev`.
-5. Sigue `docs/INSTALACION-GMAIL-SUPABASE.md` para conectar Gmail API.
-6. Consulta `docs/FASE-2B-BANCOLOMBIA.md` y `docs/FASE-2B1-FECHA-HORA-MOVIMIENTOS.md` para desplegar y probar esta fase.
-
-## Comandos
+## Instalación local
 
 ```bash
 npm install --package-lock=false
+npm run dev
+```
+
+Copia `.env.example` como `.env` y configura:
+
+```text
+VITE_SUPABASE_URL=https://TU_PROJECT_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=TU_SUPABASE_ANON_KEY
+```
+
+## Migraciones SQL
+
+Ejecuta en Supabase SQL Editor, respetando este orden:
+
+1. `supabase/2026-07-14-fase1a-base-independiente.sql`
+2. `supabase/2026-07-16-fase2a-motor-sincronizacion.sql`
+3. `supabase/2026-07-16-fase2b-bancolombia.sql`
+4. `supabase/2026-07-16-fase2b1-fecha-hora-sincronizacion-movimientos.sql`
+5. `supabase/2026-07-17-fase2b2-acceso-publico-empleados.sql`
+6. `supabase/2026-07-17-fase2b32-simplificacion-operativa.sql`
+7. `supabase/2026-07-17-fase2d-facturacion-electronica.sql`
+
+La Fase 3A.1 tampoco requiere una migración SQL nueva; reutiliza `gmail_sync_candidates` para conservar las alertas Bancolombia no reconocidas.
+
+## Secretos de Supabase Edge Functions
+
+Configura los siguientes secretos en el proyecto Supabase:
+
+```text
+GOOGLE_GMAIL_CLIENT_ID
+GOOGLE_GMAIL_CLIENT_SECRET
+GOOGLE_GMAIL_REDIRECT_URI
+APP_PUBLIC_URL
+GMAIL_TOKEN_ENCRYPTION_KEY
+```
+
+Opcionalmente puede configurarse:
+
+```text
+APP_ALLOWED_ORIGINS
+```
+
+`APP_PUBLIC_URL` debe contener exclusivamente la URL pública de producción, sin el prefijo `Valor:`, sin comillas y sin saltos de línea. Ejemplo:
+
+```text
+https://rafiki-mf.vercel.app
+```
+
+## Edge Functions
+
+El proyecto contiene diez funciones:
+
+1. `gmail-oauth-start`
+2. `gmail-oauth-callback`
+3. `gmail-connection-status`
+4. `gmail-test-connection`
+5. `gmail-diagnostics`
+6. `gmail-disconnect`
+7. `gmail-sync-now`
+8. `gmail-sync-invoices`
+9. `employee-access-admin`
+10. `employee-public-access`
+
+El flujo `.github/workflows/deploy-supabase-functions.yml` despliega las diez funciones cuando cambia `supabase/functions/**` o puede ejecutarse manualmente desde GitHub Actions.
+
+## Verificación técnica
+
+Ejecuta la comprobación completa antes de desplegar:
+
+```bash
+npm run check
+```
+
+Este comando ejecuta, en orden:
+
+```bash
 npm test
 npm run lint
 npm run validate
 npm run build
 ```
 
+También pueden ejecutarse individualmente.
+
+## Despliegue
+
+### GitHub
+
+Configura estos secretos del repositorio:
+
+```text
+SUPABASE_ACCESS_TOKEN
+SUPABASE_PROJECT_REF
+```
+
+### Vercel
+
+Configura:
+
+```text
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+```
+
+Vercel instala el proyecto mediante:
+
+```bash
+npm install --registry=https://registry.npmjs.org --no-audit --no-fund --package-lock=false
+```
+
+## Regla permanente de instalación
+
+Este proyecto no utiliza `package-lock.json` ni `npm ci`.
+
+- No subir `package-lock.json`.
+- No ejecutar `npm ci`.
+- Usar `npm install --package-lock=false`.
+- Mantener la generación del lock desactivada en Vercel.
+
 ## Seguridad
 
-Nunca subas al repositorio:
+Nunca subir al repositorio:
 
-- `.env`
-- Client Secret de Google
-- Service Role Key de Supabase
-- Refresh token de Gmail
-- `GMAIL_TOKEN_ENCRYPTION_KEY`
-- `package-lock.json`
+- `.env` o `.env.local`.
+- Client Secret de Google.
+- Service Role Key de Supabase.
+- Refresh token de Gmail.
+- `GMAIL_TOKEN_ENCRYPTION_KEY`.
+- Credenciales reales de empleados.
+- `package-lock.json` o `npm-shrinkwrap.json`.
 
-Los secretos de Gmail deben configurarse exclusivamente en Supabase Edge Functions.
+Los secretos de Gmail deben permanecer exclusivamente en Supabase Edge Functions. La aplicación no almacena el cuerpo completo de los correos ni el contenido íntegro de las facturas en las tablas documentales.
 
+## Documentación principal
 
-## Fase 2B.2 — Vista pública para empleados
+- `docs/INSTALACION-GMAIL-SUPABASE.md`
+- `docs/DESPLIEGUE-100-CLOUD.md`
+- `docs/FASE-2B-BANCOLOMBIA.md`
+- `docs/FASE-2B2-ACCESO-PUBLICO-EMPLEADOS.md`
+- `docs/FASE-2D-FACTURACION-ELECTRONICA.md`
+- `docs/FASE-3A-ESTABILIZACION-BASE.md`
+- `docs/CRONOGRAMA-PROYECTO.md`
 
-La ruta `/empleados` permite consultar solamente los cinco movimientos más recientes, sincronizar alertas recientes de Bancolombia y confirmar pagos recibidos. El Administrador configura el nombre y la contraseña desde Configuración. Ejecutar previamente `supabase/2026-07-17-fase2b2-acceso-publico-empleados.sql`.
+## Próxima etapa recomendada
 
-## Fase 2B.3 — Diagnóstico Gmail y sincronización rápida
-
-- Verificador activo de conexión Gmail con resultados por etapa.
-- Visualización del último error y errores técnicos recientes.
-- Identificación de alertas Bancolombia detectadas pero no convertidas por formato no reconocido.
-- Sincronización rápida de las últimas 2, 6 o 12 horas; 2 horas es el valor predeterminado.
-- La búsqueda rápida consulta exclusivamente el remitente autorizado de Bancolombia y procesa máximo 100 mensajes.
-- La sincronización histórica por rango de fechas continúa disponible.
-- Nueva Edge Function: `gmail-diagnostics`.
-- No requiere una migración SQL adicional.
-
-## Fase 2B.3.1 — Corrección del diagnóstico de Edge Functions
-
-La versión 1.2.4 diferencia “Sin conectar” de “Estado no disponible”, mantiene el diagnóstico visible aunque Supabase no responda y corrige bloqueos CORS entre URLs de Vercel y las Edge Functions. No requiere SQL nuevo. Es obligatorio redesplegar todas las funciones para incorporar el archivo compartido `_shared/cors.ts`.
-
-## Fase 2B.3.2 — Simplificación operativa
-
-La versión 1.2.5 reduce la navegación principal a Inicio, Movimientos, Facturas y Configuración. Se elimina el flujo de revisión de movimientos, sus columnas y estados derivados. Las confirmaciones realizadas desde el enlace de empleados se conservan en su tabla independiente sin modificar el movimiento. Requiere ejecutar `supabase/2026-07-17-fase2b32-simplificacion-operativa.sql` y redesplegar `gmail-sync-now` y `employee-public-access`.
-
-## Fase 2B.3.3 — PWA y sincronización rápida para empleados
-
-La versión 1.2.6 incorpora en `/empleados` el selector de sincronización rápida de 2, 6 y 12 horas, con 2 horas como opción predeterminada y límite de una ejecución por minuto. La ruta pública puede instalarse como una PWA independiente llamada **Rafiki Empleados**, con manifiesto, iconos e inicio directo propios. No requiere SQL nuevo; se deben redesplegar `gmail-sync-now` y `employee-public-access`.
-
-
-## Fase 2B.3.4 — Búsqueda rápida de 20 alertas
-
-La versión 1.2.7 reemplaza los selectores de horas por un botón único que consulta como máximo las 20 alertas Bancolombia más recientes recibidas durante la última hora. Se aplica en Movimientos, Configuración y Rafiki Empleados. No requiere SQL nuevo; se debe redesplegar `gmail-sync-now`.
-
-## Fase 2D — Facturación electrónica
-
-La versión 1.3.0 incorpora `gmail-sync-invoices`, búsqueda de correos con ZIP/XML/PDF, extracción UBL de proveedor, NIT, número, CUFE, fechas y valores, control de duplicados y un módulo Facturas operativo. Los PDF sin XML se registran como documentos incompletos. Ejecutar `supabase/2026-07-17-fase2d-facturacion-electronica.sql` antes de usar la nueva función.
+La siguiente subfase prevista es la **Fase 3B — integración real de Nequi**, manteniendo Bancolombia, facturación electrónica y acceso de empleados sin cambios funcionales.
